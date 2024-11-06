@@ -1,0 +1,118 @@
+Sector
+
+
+Animal Sector
+
+Focus: Classification of animals based on their usage, characteristics, and relationship to humans.
+
+Sub-Categories:
+
+Livestock
+Cattle: Includes dairy, beef, and meat-producing cattle (cows, bulls, oxen, calves).
+Small Ruminants: Refers to sheep (Ovis spp) and goats (Capra spp).
+Pig: Includes domesticated pigs (genus Sus), covering swine, hogs, and pork.
+Livestock - Other Food: Encompasses domesticated or farmed wild animals raised for food, such as buffalo, yaks, camels, horses, mules, rabbits, etc.
+Livestock - Other Non-Food: Includes animals used for labor or other non-food products, such as skin and fur.
+Not Specified: Refers to general terms like “livestock” without specific identification.
+
+Poultry
+Chicken: Refers specifically to chickens (Gallus domesticus), including hens, roosters, chicks, and broilers.
+Other Poultry: Covers other domesticated birds like turkeys, quails, ostriches, pigeons, and ducks.
+Not Specified: General term “poultry” without additional information.
+
+Aquaculture
+Fish: Fresh or saltwater species such as carp, salmon, tilapia, and catfish.
+Other Aquaculture: Includes other aquatic species like crustaceans, mollusks, and amphibians.
+Not Specified: General term “aquaculture” without further specification.
+
+Insects
+Insects: Small hexapod invertebrates, including domesticated insects such as honeybees (Apis) and silkworms.
+
+Companion
+Companion: Animals kept as pets or used in medical/educational settings, including cats, dogs, ferrets, rodents, birds, and some reptiles.
+
+
+Wildlife
+Wildlife: Non-domesticated animals living independently of human control, including both native and non-native species.
+Plant Sector
+
+Focus: Classification of plants based on usage and plant parts, including crops, fruits, vegetables, oil seeds, and wild plants.
+
+Sub-Categories:
+
+Cereals
+Cereals: Grasses cultivated for edible grains, such as wheat, rice, maize, barley, oats, ancient grains (e.g., quinoa, sorghum, millet).
+Crop
+Crop: Plants cultivated on a large scale without specific identification, e.g., fiber crops (cotton, flax), industrial crops, and animal feed.
+Fruits
+Berries: Small fruits eaten whole, such as strawberries, raspberries, blueberries, and blackberries. Commonly known berries that are botanically not true berries are included.
+Citrus: Fruits from the Rutaceae family, including oranges, lemons, limes, and grapefruits.
+Stone: Fruits with a pit or “stone” inside, like plums, cherries, apricots, and peaches.
+Not Specified: General term “fruits” without further specification.
+Other: Includes fruits not covered in the other sub-categories, such as bananas, apples, pears, and avocados.
+
+Oil Seeds
+Oil Seeds: Grains grown primarily for oil extraction, like sunflower, soybean, canola, and sesame seeds.
+
+Pulses/Beans
+Pulses/Beans: Legumes harvested for consumption, like beans (kidney, pinto, black), chickpeas, and lentils. Excludes green legumes like peas that are classified as vegetables.
+
+Tree Nuts
+Tree Nuts: Nuts growing on trees, such as hazelnuts, chestnuts, walnuts, pecans, and almonds.
+Vegetables
+Fruit: Botanically fruits but classified as vegetables due to culinary use, e.g., tomatoes, bell peppers, cucumbers, eggplants.
+Leafy Greens: Edible leaves of plants, like lettuce, spinach, kale, and collards.
+Roots/Tubers: Underground parts consumed as food, like potatoes, carrots, yams, and onions.
+Stems/Flowers: Flowering parts eaten as vegetables, such as broccoli, asparagus, celery, and rhubarb.
+Mushrooms: Fungi eaten as vegetables, like button mushrooms and shiitake.
+Not Specified: General term “vegetables” without further specification.
+Other: Vegetables not covered by the above sub-categories.
+
+Wild Plants
+Wild Plants: Native or indigenous plants not cultivated by humans, e.g., ash trees, European conifer forests.
+
+Plant - Not Specified
+Plant - Not Specified: Plants without additional information on species or group.
+Plant - Other
+Plant - Other: Plants not classified in other categories, including medicinal plants, herbs, and food additives (e.g., spices, condiments).
+
+Environment Sector
+
+Focus: Classification of environmental components relevant to research and development, particularly in the context of antimicrobial resistance (AMR).
+
+Sub-Categories:
+
+Wastewater
+Health Facilities: Wastewater originating from healthcare settings such as hospitals, nursing homes, and medical labs.
+Agriculture: Wastewater from animal and plant production activities, including drainage water.
+Aquaculture: Wastewater from farming of aquatic animals.
+Industrial: Wastewater from industrial activities, including antimicrobial manufacturing.
+Domestic: Wastewater from households and communities, excluding industrial wastewater.
+Not Specified: General term “wastewater” without further details.
+Other: Any wastewater not covered by other categories, like stormwater or treatment plant wastewater.
+
+Water
+Water-Surface: Water in natural bodies, such as rivers, lakes, oceans, and streams.
+Water-Not Specified: General term “water” without further information.
+Water-Other: Specific types of water like drinking water, irrigation, recreational water, and reclaimed water.
+
+Soil-Waste
+Compost: Organic matter from plant origin and green manure.
+Manure: Organic matter from animals used in agriculture, such as animal bedding.
+Sludge: Material from wastewater treatment, often from industrial processes.
+Not Specified: General term “soil-waste” without further details.
+Other: Any soil-waste not covered by other categories.
+
+Soil
+Soil: Any type of soil with no additional details provided, applicable to agricultural, forest, or grassland soils.
+Air
+Air: Gaseous substances in the atmosphere, potentially including dust.
+
+Soil
+Soil: Any type of soil with no additional details provided, applicable to agricultural, forest, or grassland soils.
+
+Environment-Not Specified
+Environment-Not Specified: General term “environment” without specific information.
+
+Environment-Other
+Environment-Other: Any environmental aspect not covered by other categories.

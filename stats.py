@@ -4,6 +4,8 @@ from utils.metrics import (
     get_misclassifications,
     summarize_predictions,
     analyze_error_patterns,
+    analyze_class_errors,
+    analyze_detailed_class_errors,
 )
 
 
@@ -194,28 +196,116 @@ def compute_excel_accuracies(file_path, show_misclassifications=False):
                             print("-" * 40)
 
     # Print overall error patterns
-    print("\nOverall Error Patterns:")
-    print("=" * 80)
-    for domain in total_error_patterns:
-        print(f"\n{domain}:")
-        print("-" * 80)
-        for error_type in ["incorrect", "additional", "missing"]:
-            errors = total_error_patterns[domain][error_type]
-            if errors:
-                print(f"\n{error_type.capitalize()} Predictions (Top 10):")
-                sorted_errors = sorted(
-                    errors.items(), key=lambda x: x[1], reverse=True
-                )[:10]
-                for category, count in sorted_errors:
-                    print(f"  {category}: {count} errors")
+    # print("\nOverall Error Patterns:")
+    # print("=" * 80)
+    # for domain in total_error_patterns:
+    #     print(f"\n{domain}:")
+    #     print("-" * 80)
+    #     for error_type in ["incorrect", "additional", "missing"]:
+    #         errors = total_error_patterns[domain][error_type]
+    #         if errors:
+    #             print(f"\n{error_type.capitalize()} Predictions (Top 10):")
+    #             sorted_errors = sorted(
+    #                 errors.items(), key=lambda x: x[1], reverse=True
+    #             )[:10]
+    #             for category, count in sorted_errors:
+    #                 print(f"  {category}: {count} errors")
+
+    # Add class-specific error analysis
+    if show_misclassifications:
+        # Initialize class-specific error tracking
+        total_class_stats = {"added_wrongly": {}, "missing_wrongly": {}}
+
+        # Analyze each entry
+        for index, row in df.iterrows():
+            ground_truth = row["Ground Truth"]
+            prediction = row["Prediction"]
+
+            if pd.isna(ground_truth) or pd.isna(prediction):
+                continue
+
+            class_stats = analyze_class_errors(
+                ground_truth, prediction, print_details=False
+            )
+
+            # Aggregate the statistics
+            for error_type in ["added_wrongly", "missing_wrongly"]:
+                for category, count in class_stats[error_type].items():
+                    total_class_stats[error_type][category] = (
+                        total_class_stats[error_type].get(category, 0) + count
+                    )
+
+        # Print class-specific error analysis
+        print("\nOverall Class-specific Error Analysis:")
+        print("=" * 80)
+
+        print("\nTop 10 Most Frequently Added Wrong Classes:")
+        print("-" * 50)
+        sorted_added = sorted(
+            total_class_stats["added_wrongly"].items(), key=lambda x: x[1], reverse=True
+        )[:10]
+        for category, count in sorted_added:
+            print(f"  {category}: {count} times")
+
+        print("\nTop 10 Most Frequently Missing Classes:")
+        print("-" * 50)
+        sorted_missing = sorted(
+            total_class_stats["missing_wrongly"].items(),
+            key=lambda x: x[1],
+            reverse=True,
+        )[:10]
+        for category, count in sorted_missing:
+            print(f"  {category}: {count} times")
+
+    # Add detailed class-specific error analysis
+    if show_misclassifications:
+        print("\nDetailed Class Error Analysis:")
+        print("=" * 100)
+
+        # Initialize detailed error tracking
+        total_error_patterns = {"substitutions": {}, "additional": {}, "missing": {}}
+
+        # Analyze each entry
+        for index, row in df.iterrows():
+            ground_truth = row["Ground Truth"]
+            prediction = row["Prediction"]
+
+            if pd.isna(ground_truth) or pd.isna(prediction):
+                continue
+
+            error_patterns = analyze_detailed_class_errors(ground_truth, prediction)
+
+            # Aggregate the statistics
+            for error_type in ["substitutions", "additional", "missing"]:
+                for pattern, count in error_patterns[error_type].items():
+                    total_error_patterns[error_type][pattern] = (
+                        total_error_patterns[error_type].get(pattern, 0) + count
+                    )
+
+        # Print top 10 errors for each category
+        for error_type in ["substitutions", "additional", "missing"]:
+            print(f"\nTop 10 Most Frequent {error_type.title()}:")
+            print("-" * 80)
+            sorted_errors = sorted(
+                total_error_patterns[error_type].items(),
+                key=lambda x: x[1],
+                reverse=True,
+            )[:10]
+
+            if sorted_errors:
+                for pattern, count in sorted_errors:
+                    print(f"  {count:3d}x  {pattern}")
+            else:
+                print("  No errors of this type found")
+            print()
 
     # Print final summary
     print("\nOverall Prediction Summary:")
     print("-" * 40)
     print(f"Correct Predictions:   {total_summary['correct']}")
-    print(f"Additional Incorrect:  {total_summary['additional']}")
-    print(f"Missing Categories:    {total_summary['missing']}")
-    print(f"Completely Incorrect: {total_summary['incorrect']}")
+    print(f"Additional Predictions:  {total_summary['additional']}")
+    print(f"Missing Predictions:    {total_summary['missing']}")
+    print(f"Incorrect Predictions: {total_summary['incorrect']}")
     print("-" * 40)
     total_predictions = sum(total_summary.values())
     if total_predictions > 0:

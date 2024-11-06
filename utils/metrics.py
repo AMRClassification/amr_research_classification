@@ -354,3 +354,196 @@ def analyze_error_patterns(ground_truth, prediction, print_details=True):
                         print(f"  {category}: {count} errors")
 
     return error_stats
+
+
+def analyze_class_errors(ground_truth, prediction, print_details=True):
+    """
+    Analyzes how often specific classes are mistakenly added or missing.
+    Returns and prints top 10 most problematic classes for each error type.
+    """
+    domains = ["Sector", "Research Area", "Infectious Agent"]
+    class_stats = {
+        "added_wrongly": {},  # Classes that were incorrectly added
+        "missing_wrongly": {},  # Classes that were missed
+    }
+
+    gt_domains = parse_categories(ground_truth)
+    pred_domains = parse_categories(prediction)
+
+    for domain in domains:
+        gt_categories = gt_domains.get(domain, [])
+        pred_categories = pred_domains.get(domain, [])
+
+        # Find correct predictions
+        correct_predictions = []
+        for pred_cat in pred_categories:
+            for gt_cat in gt_categories:
+                if pred_cat == gt_cat:
+                    correct_predictions.append(pred_cat)
+                    break
+
+        # Track wrongly added classes
+        for pred_cat in pred_categories:
+            if pred_cat not in correct_predictions:
+                full_path = " / ".join(pred_cat)
+                class_stats["added_wrongly"][full_path] = (
+                    class_stats["added_wrongly"].get(full_path, 0) + 1
+                )
+
+        # Track missing classes
+        for gt_cat in gt_categories:
+            if gt_cat not in correct_predictions:
+                full_path = " / ".join(gt_cat)
+                class_stats["missing_wrongly"][full_path] = (
+                    class_stats["missing_wrongly"].get(full_path, 0) + 1
+                )
+
+    if print_details:
+        print("\nClass-specific Error Analysis:")
+        print("=" * 80)
+
+        # Print wrongly added classes
+        print("\nTop 10 Most Frequently Added Wrong Classes:")
+        print("-" * 50)
+        sorted_added = sorted(
+            class_stats["added_wrongly"].items(), key=lambda x: x[1], reverse=True
+        )[:10]
+        for category, count in sorted_added:
+            print(f"  {category}: {count} times")
+
+        # Print missing classes
+        print("\nTop 10 Most Frequently Missing Classes:")
+        print("-" * 50)
+        sorted_missing = sorted(
+            class_stats["missing_wrongly"].items(), key=lambda x: x[1], reverse=True
+        )[:10]
+        for category, count in sorted_missing:
+            print(f"  {category}: {count} times")
+
+    return class_stats
+
+
+def analyze_detailed_class_errors(ground_truth, prediction):
+    """
+    Analyzes detailed patterns in class-specific errors.
+    Categorizes errors into:
+    - Substitution: Class A was predicted instead of correct Class B
+    - Additional: Class was incorrectly added alongside correct predictions
+    - Missing: Class was missing from prediction
+
+    Returns dict with error patterns and their frequencies
+    """
+    error_patterns = {
+        "substitutions": {},  # "wrong_class -> correct_class": count
+        "additional": {},  # "added_class (alongside: correct_classes)": count
+        "missing": {},  # "missing_class (predicted: incorrect_classes)": count
+    }
+
+    gt_domains = parse_categories(ground_truth)
+    pred_domains = parse_categories(prediction)
+
+    for domain in ["Sector", "Research Area", "Infectious Agent"]:
+        gt_categories = gt_domains.get(domain, [])
+        pred_categories = pred_domains.get(domain, [])
+
+        # Find correct and incorrect predictions
+        correct_predictions = []
+        incorrect_predictions = []
+
+        for pred_cat in pred_categories:
+            found_match = False
+            for gt_cat in gt_categories:
+                if pred_cat == gt_cat:
+                    found_match = True
+                    correct_predictions.append(pred_cat)
+                    break
+            if not found_match:
+                incorrect_predictions.append(pred_cat)
+
+        # Analyze error patterns
+        if incorrect_predictions:
+            if not correct_predictions:  # Complete substitution
+                for pred_cat in pred_categories:
+                    for gt_cat in gt_categories:
+                        error_key = f"{' / '.join(pred_cat)} → {' / '.join(gt_cat)}"
+                        error_patterns["substitutions"][error_key] = (
+                            error_patterns["substitutions"].get(error_key, 0) + 1
+                        )
+            else:  # Additional incorrect predictions
+                for pred_cat in incorrect_predictions:
+                    error_key = f"{' / '.join(pred_cat)} (alongside: {', '.join([' / '.join(c) for c in correct_predictions])})"
+                    error_patterns["additional"][error_key] = (
+                        error_patterns["additional"].get(error_key, 0) + 1
+                    )
+
+        # Analyze missing categories
+        for gt_cat in gt_categories:
+            if gt_cat not in correct_predictions:
+                if incorrect_predictions:
+                    error_key = f"{' / '.join(gt_cat)} (predicted instead: {', '.join([' / '.join(c) for c in incorrect_predictions])})"
+                else:
+                    error_key = f"{' / '.join(gt_cat)} (no prediction)"
+                error_patterns["missing"][error_key] = (
+                    error_patterns["missing"].get(error_key, 0) + 1
+                )
+
+    return error_patterns
+
+
+def analyze_classification_constellations(
+    ground_truth, prediction, top_n=30, print_details=True
+):
+    """
+    Analyzes the most frequent ground truth and prediction classification pairs within each domain.
+
+    Args:
+        ground_truth (str): Ground truth classification string.
+        prediction (str): Predicted classification string.
+        top_n (int): Number of top constellations to return.
+        print_details (bool): Whether to print the top constellations.
+
+    Returns:
+        dict: A dictionary containing top constellations per domain.
+    """
+    from collections import Counter
+
+    domains = ["Sector", "Research Area", "Infectious Agent"]
+    constellations = {domain: Counter() for domain in domains}
+
+    gt_domains = parse_categories(ground_truth)
+    pred_domains = parse_categories(prediction)
+
+    for domain in domains:
+        gt_list = gt_domains.get(domain, [])
+        pred_list = pred_domains.get(domain, [])
+
+        # Convert lists to sorted tuples for consistent counting
+        gt_sorted = tuple(sorted([" / ".join(cat) for cat in gt_list]))
+        pred_sorted = tuple(sorted([" / ".join(cat) for cat in pred_list]))
+
+        constellation = (gt_sorted, pred_sorted)
+        constellations[domain][constellation] += 1
+
+    top_constellations = {
+        domain: constellations[domain].most_common(top_n) for domain in domains
+    }
+
+    if print_details:
+        print("\nTop 30 Ground Truth <-> Prediction Constellations per Domain:")
+        print("=" * 100)
+        for domain in domains:
+            print(f"\n{domain} Constellations:")
+            print("-" * 100)
+            for idx, ((gt, pred), count) in enumerate(top_constellations[domain], 1):
+                gt_display = (
+                    "\n  Ground Truth:\n    - " + "\n    - ".join(gt) if gt else "None"
+                )
+                pred_display = (
+                    "\n  Prediction:\n    - " + "\n    - ".join(pred)
+                    if pred
+                    else "None"
+                )
+                print(f"{idx}. Occurrences: {count}")
+                print(f"  {gt_display}\n  {pred_display}\n")
+
+    return top_constellations

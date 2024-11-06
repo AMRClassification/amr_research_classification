@@ -2,6 +2,8 @@ import pandas as pd
 from utils.metrics import (
     calculate_hierarchical_accuracy,
     get_misclassifications,
+    summarize_predictions,
+    analyze_error_patterns,
 )
 
 
@@ -29,6 +31,15 @@ def compute_excel_accuracies(file_path, show_misclassifications=False):
     # Initialize misclassifications with known domains
     if show_misclassifications:
         misclassifications = {"Sector": [], "Research Area": [], "Infectious Agent": []}
+
+    # Initialize summary counters
+    total_summary = {"correct": 0, "additional": 0, "missing": 0, "incorrect": 0}
+
+    # Initialize error pattern tracking
+    total_error_patterns = {
+        domain: {"incorrect": {}, "additional": {}, "missing": {}}
+        for domain in ["Sector", "Research Area", "Infectious Agent"]
+    }
 
     # Process each row
     print(f"Processing {len(df)} entries...")
@@ -95,6 +106,28 @@ def compute_excel_accuracies(file_path, show_misclassifications=False):
                     total_matches[level] += level_matches.get(level, 0)
                     total_counts[level] += level_totals.get(level, 0)
 
+            # Update summary statistics
+            summary = summarize_predictions(
+                ground_truth,
+                prediction,
+                title=row.get("Title", "N/A"),
+                print_details=show_misclassifications,
+            )
+            for key in total_summary:
+                total_summary[key] += summary[key]
+
+            # Analyze error patterns
+            error_patterns = analyze_error_patterns(
+                ground_truth, prediction, print_details=False
+            )
+            for domain in total_error_patterns:
+                for error_type in ["incorrect", "additional", "missing"]:
+                    for category, count in error_patterns[domain][error_type].items():
+                        total_error_patterns[domain][error_type][category] = (
+                            total_error_patterns[domain][error_type].get(category, 0)
+                            + count
+                        )
+
         except Exception as e:
             print(f"Error processing row {index}: {e}")
             skipped_entries += 1
@@ -160,6 +193,35 @@ def compute_excel_accuracies(file_path, show_misclassifications=False):
                             print(f"Prediction: {err['prediction']}")
                             print("-" * 40)
 
+    # Print overall error patterns
+    print("\nOverall Error Patterns:")
+    print("=" * 80)
+    for domain in total_error_patterns:
+        print(f"\n{domain}:")
+        print("-" * 80)
+        for error_type in ["incorrect", "additional", "missing"]:
+            errors = total_error_patterns[domain][error_type]
+            if errors:
+                print(f"\n{error_type.capitalize()} Predictions (Top 10):")
+                sorted_errors = sorted(
+                    errors.items(), key=lambda x: x[1], reverse=True
+                )[:10]
+                for category, count in sorted_errors:
+                    print(f"  {category}: {count} errors")
+
+    # Print final summary
+    print("\nOverall Prediction Summary:")
+    print("-" * 40)
+    print(f"Correct Predictions:   {total_summary['correct']}")
+    print(f"Additional Incorrect:  {total_summary['additional']}")
+    print(f"Missing Categories:    {total_summary['missing']}")
+    print(f"Completely Incorrect: {total_summary['incorrect']}")
+    print("-" * 40)
+    total_predictions = sum(total_summary.values())
+    if total_predictions > 0:
+        accuracy = total_summary["correct"] / total_predictions
+        print(f"Overall Accuracy: {accuracy:.2%}")
+
     return overall_accuracies, domain_stats
 
 
@@ -167,6 +229,8 @@ if __name__ == "__main__":
     # Example usage
     file_path = "results/classification_results.xlsx"
     try:
-        overall_accuracies, domain_stats = compute_excel_accuracies(file_path)
+        overall_accuracies, domain_stats = compute_excel_accuracies(
+            file_path, show_misclassifications=True
+        )
     except Exception as e:
         print(f"Error processing file: {e}")

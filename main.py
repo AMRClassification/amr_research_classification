@@ -7,7 +7,7 @@ from collections import Counter
 from classifications.sector import classify_sector
 from classifications.infectious_agent import classify_infectious_agent
 from classifications.research_area import classify_research_area
-from compute_accuracies import compute_excel_accuracies
+from stats import compute_excel_accuracies
 
 
 def construct_classification_string(data):

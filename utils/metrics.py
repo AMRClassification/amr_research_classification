@@ -194,3 +194,163 @@ def get_misclassifications(ground_truth, prediction, domain):
         )
 
     return misclassifications
+
+
+def summarize_predictions(ground_truth, prediction, title="", print_details=True):
+    """
+    Summarizes the prediction results across all domains and prints detailed analysis.
+    Only prints errors, with a simple format showing type, prediction, and ground truth.
+    """
+    domains = ["Sector", "Research Area", "Infectious Agent"]
+    summary = {"correct": 0, "additional": 0, "missing": 0, "incorrect": 0}
+
+    if print_details and (title):
+        print(f"\nPaper: {title}")
+        print("-" * 80)
+
+    for domain in domains:
+        gt_domains = parse_categories(ground_truth)
+        pred_domains = parse_categories(prediction)
+
+        gt_categories = gt_domains.get(domain, [])
+        pred_categories = pred_domains.get(domain, [])
+
+        # Count correct predictions
+        correct_predictions = []
+        incorrect_predictions = []
+
+        for pred_cat in pred_categories:
+            found_match = False
+            for gt_cat in gt_categories:
+                if pred_cat == gt_cat:
+                    found_match = True
+                    correct_predictions.append(pred_cat)
+                    break
+            if not found_match:
+                incorrect_predictions.append(pred_cat)
+
+        if print_details and (
+            incorrect_predictions or len(correct_predictions) < len(gt_categories)
+        ):
+            print(f"\n{domain}:")
+
+            # Case 1: No correct predictions at all
+            if not correct_predictions and pred_categories:
+                print("  Type: Incorrect")
+                print("  Ground Truth:")
+                for gt in gt_categories:
+                    print(f"    - {' / '.join(gt)}")
+                print("  Prediction:")
+                for pred in pred_categories:
+                    print(f"    - {' / '.join(pred)}")
+                summary["incorrect"] += len(pred_categories)
+
+            else:
+                # Case 2: Additional incorrect predictions
+                if incorrect_predictions:
+                    print("  Type: Additional")
+                    print("  Ground Truth:")
+                    for gt in gt_categories:
+                        print(f"    - {' / '.join(gt)}")
+                    print("  Prediction (incorrect ones only):")
+                    for pred in incorrect_predictions:
+                        print(f"    - {' / '.join(pred)}")
+                    summary["additional"] += len(incorrect_predictions)
+
+                # Case 3: Missing categories
+                missing_categories = [
+                    cat for cat in gt_categories if cat not in correct_predictions
+                ]
+                if missing_categories:
+                    print("  Type: Missing")
+                    print("  Ground Truth (missing ones only):")
+                    for cat in missing_categories:
+                        print(f"    - {' / '.join(cat)}")
+                    print("  Prediction: None")
+                    summary["missing"] += len(missing_categories)
+
+        # Update summary for correct predictions
+        if correct_predictions:
+            summary["correct"] += len(correct_predictions)
+
+    return summary
+
+
+def analyze_error_patterns(ground_truth, prediction, print_details=True):
+    """
+    Analyzes patterns in prediction errors by class level.
+    Returns statistics about which classes are most problematic.
+    Shows full class paths and limits to top 10 most frequent errors.
+    """
+    domains = ["Sector", "Research Area", "Infectious Agent"]
+    error_stats = {
+        domain: {
+            "incorrect": {},  # Classes that were completely wrong
+            "additional": {},  # Classes that were incorrectly added
+            "missing": {},  # Classes that were missed
+        }
+        for domain in domains
+    }
+
+    for domain in domains:
+        gt_domains = parse_categories(ground_truth)
+        pred_domains = parse_categories(prediction)
+
+        gt_categories = gt_domains.get(domain, [])
+        pred_categories = pred_domains.get(domain, [])
+
+        # Count correct predictions
+        correct_predictions = []
+        incorrect_predictions = []
+
+        for pred_cat in pred_categories:
+            found_match = False
+            for gt_cat in gt_categories:
+                if pred_cat == gt_cat:
+                    found_match = True
+                    correct_predictions.append(pred_cat)
+                    break
+            if not found_match:
+                incorrect_predictions.append(pred_cat)
+                # Track incorrect predictions with full path
+                if not correct_predictions:  # Completely incorrect prediction
+                    full_path = " / ".join(pred_cat)
+                    error_stats[domain]["incorrect"][full_path] = (
+                        error_stats[domain]["incorrect"].get(full_path, 0) + 1
+                    )
+                else:  # Additional incorrect prediction
+                    full_path = " / ".join(pred_cat)
+                    error_stats[domain]["additional"][full_path] = (
+                        error_stats[domain]["additional"].get(full_path, 0) + 1
+                    )
+
+        # Track missing categories with full path
+        missing_categories = [
+            cat for cat in gt_categories if cat not in correct_predictions
+        ]
+        for cat in missing_categories:
+            full_path = " / ".join(cat)
+            error_stats[domain]["missing"][full_path] = (
+                error_stats[domain]["missing"].get(full_path, 0) + 1
+            )
+
+    if print_details:
+        print("\nError Pattern Analysis:")
+        print("=" * 80)
+
+        for domain in domains:
+            print(f"\n{domain}:")
+            print("-" * 80)
+
+            for error_type in ["incorrect", "additional", "missing"]:
+                errors = error_stats[domain][error_type]
+                if errors:
+                    print(f"\n{error_type.capitalize()} Predictions (Top 10):")
+                    # Sort by frequency and take top 10
+                    sorted_errors = sorted(
+                        errors.items(), key=lambda x: x[1], reverse=True
+                    )[:10]
+                    for category, count in sorted_errors:
+                        print(f"  {category}: {count} errors")
+
+    return error_stats

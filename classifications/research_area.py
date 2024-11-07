@@ -39,6 +39,8 @@ def generate_prompt(title, abstract, include_examples=True):
         4. **Additional Information for 'research_area' Category:**
             {research_area_additional_info}
 
+            Note: The Discovery stage
+
         5. **Output Format:**
             - The output should be a JSON object with the following structure:
             {{

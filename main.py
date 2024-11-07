@@ -199,15 +199,16 @@ def perform_classification(
 
 if __name__ == "__main__":
     # Load your data into DataFrame
-    file_path = "assets/4. Data_Dynamic Dashboard_test_19032024.xlsx"
+    # Human_Therapeutics_1060
+    file_path = "assets/Human_Therapeutics_1060.xlsx"
 
     categorised_df = pd.read_excel(file_path)
 
     # Generate a random index between 1 and the total number of rows in the DataFrame
     random_index = random.randint(1, len(categorised_df))
 
-    start_index = 1000
-    end_index = 1200
+    start_index = 0
+    end_index = 1
 
     # Perform classification
     results = perform_classification(

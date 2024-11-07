@@ -490,60 +490,41 @@ def analyze_detailed_class_errors(ground_truth, prediction):
     return error_patterns
 
 
-def analyze_classification_constellations(
-    ground_truth, prediction, top_n=30, print_details=True
-):
+def analyze_classification_constellations_errors(ground_truth, prediction):
     """
-    Analyzes the most frequent ground truth and prediction classification pairs within each domain.
+    Analyzes complete classification constellations within each domain.
+    Only tracks incorrect predictions to show error patterns.
 
-    Args:
-        ground_truth (str): Ground truth classification string.
-        prediction (str): Predicted classification string.
-        top_n (int): Number of top constellations to return.
-        print_details (bool): Whether to print the top constellations.
-
-    Returns:
-        dict: A dictionary containing top constellations per domain.
+    Returns dict with error constellation patterns and their frequencies per domain
     """
-    from collections import Counter
-
     domains = ["Sector", "Research Area", "Infectious Agent"]
-    constellations = {domain: Counter() for domain in domains}
+    constellation_patterns = {domain: {} for domain in domains}
 
     gt_domains = parse_categories(ground_truth)
     pred_domains = parse_categories(prediction)
 
     for domain in domains:
-        gt_list = gt_domains.get(domain, [])
-        pred_list = pred_domains.get(domain, [])
+        gt_categories = gt_domains.get(domain, [])
+        pred_categories = pred_domains.get(domain, [])
 
-        # Convert lists to sorted tuples for consistent counting
-        gt_sorted = tuple(sorted([" / ".join(cat) for cat in gt_list]))
-        pred_sorted = tuple(sorted([" / ".join(cat) for cat in pred_list]))
+        # Skip if both are empty
+        if not gt_categories and not pred_categories:
+            continue
 
-        constellation = (gt_sorted, pred_sorted)
-        constellations[domain][constellation] += 1
+        # Sort categories to ensure consistent ordering
+        gt_categories = sorted([" / ".join(cat) for cat in gt_categories])
+        pred_categories = sorted([" / ".join(cat) for cat in pred_categories])
 
-    top_constellations = {
-        domain: constellations[domain].most_common(top_n) for domain in domains
-    }
+        # Only track if prediction is different from ground truth
+        if set(gt_categories) != set(pred_categories):
+            constellation_key = (
+                f"Ground Truth: [{' | '.join(gt_categories) if gt_categories else 'NONE'}] "
+                f"→ "
+                f"Prediction: [{' | '.join(pred_categories) if pred_categories else 'NONE'}]"
+            )
 
-    if print_details:
-        print("\nTop 30 Ground Truth <-> Prediction Constellations per Domain:")
-        print("=" * 100)
-        for domain in domains:
-            print(f"\n{domain} Constellations:")
-            print("-" * 100)
-            for idx, ((gt, pred), count) in enumerate(top_constellations[domain], 1):
-                gt_display = (
-                    "\n  Ground Truth:\n    - " + "\n    - ".join(gt) if gt else "None"
-                )
-                pred_display = (
-                    "\n  Prediction:\n    - " + "\n    - ".join(pred)
-                    if pred
-                    else "None"
-                )
-                print(f"{idx}. Occurrences: {count}")
-                print(f"  {gt_display}\n  {pred_display}\n")
+            constellation_patterns[domain][constellation_key] = (
+                constellation_patterns[domain].get(constellation_key, 0) + 1
+            )
 
-    return top_constellations
+    return constellation_patterns

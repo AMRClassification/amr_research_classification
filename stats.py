@@ -6,16 +6,22 @@ from utils.metrics import (
     analyze_error_patterns,
     analyze_class_errors,
     analyze_detailed_class_errors,
+    analyze_classification_constellations_errors,
 )
+from utils.visualizations import plot_error_constellations
+import os
 
 
-def compute_excel_accuracies(file_path, show_misclassifications=False):
+def compute_excel_accuracies(
+    file_path, show_misclassifications=False, save_plots=False
+):
     """
     Reads an Excel file and computes hierarchical accuracies for Ground Truth vs Prediction.
 
     Args:
         file_path (str): Path to the Excel file containing 'Ground Truth' and 'Prediction' columns
         show_misclassifications (bool): Whether to show detailed misclassification analysis
+        save_plots (bool): Whether to save plots of error constellations
 
     Returns:
         dict: Overall accuracy statistics for each level
@@ -312,15 +318,76 @@ def compute_excel_accuracies(file_path, show_misclassifications=False):
         accuracy = total_summary["correct"] / total_predictions
         print(f"Overall Accuracy: {accuracy:.2%}")
 
+    # Add constellation analysis with visualization
+    if show_misclassifications:
+        print("\nMost Common Error Constellations:")
+        print("=" * 100)
+
+        # Initialize constellation tracking
+        total_constellation_patterns = {
+            domain: {} for domain in ["Sector", "Research Area", "Infectious Agent"]
+        }
+
+        # Analyze each entry
+        for index, row in df.iterrows():
+            ground_truth = row["Ground Truth"]
+            prediction = row["Prediction"]
+
+            if pd.isna(ground_truth) or pd.isna(prediction):
+                continue
+
+            constellation_patterns = analyze_classification_constellations_errors(
+                ground_truth, prediction
+            )
+
+            # Aggregate the statistics
+            for domain in constellation_patterns:
+                for pattern, count in constellation_patterns[domain].items():
+                    total_constellation_patterns[domain][pattern] = (
+                        total_constellation_patterns[domain].get(pattern, 0) + count
+                    )
+
+        # Print and plot error constellations
+        for domain in total_constellation_patterns:
+            print(f"\n{domain} - Top 5 Error Constellations:")
+            print("-" * 80)
+
+            sorted_constellations = sorted(
+                total_constellation_patterns[domain].items(),
+                key=lambda x: x[1],
+                reverse=True,
+            )[:5]
+
+            if sorted_constellations:
+                for pattern, count in sorted_constellations:
+                    print(f"  {count:3d}x  {pattern}")
+            else:
+                print("  No error constellations found")
+            print()
+
+        filename = os.path.splitext(os.path.basename(file_path))[0]
+        if save_plots:
+            plot_save_path = f"results/plots/{filename}/"
+            # Create directory if it doesn't exist
+            os.makedirs(plot_save_path, exist_ok=True)
+        else:
+            plot_save_path = None
+
+        # Create visualizations
+        plot_error_constellations(
+            total_constellation_patterns,
+            save_path=plot_save_path,
+        )
+
     return overall_accuracies, domain_stats
 
 
 if __name__ == "__main__":
     # Example usage
-    file_path = "results/classification_results.xlsx"
+    file_path = "results/classification_results_All1000-1200.xlsx"
     try:
         overall_accuracies, domain_stats = compute_excel_accuracies(
-            file_path, show_misclassifications=True
+            file_path, show_misclassifications=True, save_plots=True
         )
     except Exception as e:
         print(f"Error processing file: {e}")

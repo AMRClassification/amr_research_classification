@@ -46,8 +46,18 @@ def perform_classification(
     total_time = 0
     category_counter = Counter()
 
+    # Create output file name
+    model_abbreviation = "o1" if model == "o1-mini" else "4o"
+    output_file = f"{model}_Human_Therapeutics_1060_{start_index}_{end_index}.xlsx"
+
+    # Save initial empty results
+    results_df.to_excel(output_file, index=False)
+
     # Predictions
     for index, row in df.iloc[start_index:end_index].iterrows():
+        if index % 50 == 0:
+            input("Press Enter to continue...")
+
         title = row["Title"]
         abstract = row["Abstract"]
         ground_truth = row["Categories"]
@@ -175,6 +185,9 @@ def perform_classification(
             results_df.at[index, "Categorisation Time"] = classification_time
             total_time += classification_time
 
+            # Save after each successful classification
+            results_df.to_excel(output_file, index=False)
+
         except Exception as e:
             print(f"Exception occurred during classification of index {index}: {e}")
             print("Skipping this entry.")
@@ -208,26 +221,25 @@ if __name__ == "__main__":
     random_index = random.randint(1, len(categorised_df))
 
     start_index = 0
-    end_index = 1
+    end_index = 200
+
+    model = "o1-mini"
 
     # Perform classification
     results = perform_classification(
         categorised_df,
         start_index,
         end_index,
-        model="gpt-4o-mini",
-        num_runs=5,
+        model=model,
+        num_runs=1,
         threshold=0.8,
     )
 
     if not results.empty:
-        # Save results to a new Excel file
-        output_file = "classification_results.xlsx"
-        results.to_excel(output_file, index=False)
-        print(f"Results saved to {output_file}")
-
         # Compute accuracies using the saved results
         print("\nComputing accuracies from results file...")
+        model_abbreviation = "o1" if model == "o1-mini" else "4o"
+        output_file = f"{model}_Human_Therapeutics_1060_{start_index}_{end_index}.xlsx"
         overall_accuracies, domain_stats = compute_excel_accuracies(
             output_file,
             show_misclassifications=True,  # Enable misclassification analysis

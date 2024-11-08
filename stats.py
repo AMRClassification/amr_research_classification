@@ -384,10 +384,10 @@ def compute_excel_accuracies(
 
 if __name__ == "__main__":
     # Example usage
-    file_path = "results/classification_results_All1000-1200.xlsx"
+    file_path = "classification_results.xlsx"
     try:
         overall_accuracies, domain_stats = compute_excel_accuracies(
-            file_path, show_misclassifications=True, save_plots=True
+            file_path, show_misclassifications=False, save_plots=False
         )
     except Exception as e:
         print(f"Error processing file: {e}")

@@ -14,46 +14,68 @@ def generate_prompt(title, abstract, include_examples=True):
     research_area_additional_info = get_additional_info("Research Area")
 
     base_prompt = f"""
-        You are an AI specialized in classifying research papers on antimicrobial resistance into relevant research areas based on their title and abstract. Follow the instructions and specifications below to determine the appropriate research area(s).
+You are an AI specialized in classifying research papers on antimicrobial resistance into relevant research areas based on their title and abstract. Follow the instructions and specifications below to determine the appropriate research area(s).
 
-        **Instructions:**
+**Instructions:**
 
-        1. **Input:**
-            - **Title:** {title}
-            - **Abstract:** {abstract}
-        2. **Classification Rules:**
-            
-            a. **Direct Mention or Inference:**
-                - Only classify research areas that are directly mentioned or can be directly inferred from the title and abstract. Choose the one that fits the context of the research the best, taking into account the research area definition and TRL.
-                
-            b. **Multiple Classifications:**
-                - Multiple research area classifications are permitted **only** if multiple areas are explicitly mentioned or can be directly inferred from the title and abstract.
-                - Within one research area, there should not be multiple subclassifications. For example, if classifying under "Therapeutics", choose only one of "Discovery" or "Development", not both.
-                
-            c. **Exclude External References:**
-                - Ignore any parts of the text that contain references to other resources, such as related work sections or citations to other research. Only consider the topics that are directly treated in the current research.
+### 1. Classification Choices:
+{research_area_options}
 
-        3. **Classification Choices:**
-            {research_area_options}
+### 2. Additional Information about the Classification:
+{research_area_additional_info}
 
-        4. **Additional Information for 'research_area' Category:**
-            {research_area_additional_info}
+### 3. Classification Rules:
 
-            Note: The Discovery stage
+#### a. Direct Mention or Inference:
+- **Explicit Classification:** Assign research areas that are explicitly mentioned in the title or abstract.
+- **Inferred Classification:** Assign research areas that can be directly inferred from the context.
+- **Considerations:** Use research area definitions and Technology Readiness Levels (TRL) to determine the best fit.
 
-        5. **Output Format:**
-            - The output should be a JSON object with the following structure:
-            {{
-                "research_area": [list of research areas],
-                "explanation": "explanation for the classification",
-                "confidence": "float representing the confidence in the classification",
-                "confidence_explanation": "explanation for the confidence"
-            }}
+#### b. Multiple Classifications:
+- **Allowed:** Assign multiple research areas if they are explicitly mentioned or can be directly inferred.
+- **Single Subcategory per Category:** Within a single main category (e.g., Therapeutics), assign only one subcategory (e.g., Discovery or Development).
 
-        **Now, perform the classification for the following research paper given only these classification choices:**
+#### c. Exclude External References:
+- **Ignore:** References to other works, related studies, citations, or mentions of earlier work.
+- **Focus:** Only on topics directly addressed in the current research.
 
-        **Output:**
-    """
+#### d. Therapeutics Specifics:
+- **Therapeutics / Development:**
+  - **When to Assign:** If therapeutic products are actively being developed.
+  - **Indicators:** Terms like "clinical trials," "Phase 1-3," "preclinical testing."
+- **Therapeutics / Discovery:**
+  - **When to Assign:** If researching the feasibility of a product or idea is still in the early stages.
+  - **Indicators:** Terms like "target identification," "lead optimization."
+- **Specific Phases:** Use specific subclassifications (e.g., Phase 1, Phase 2, Phase 3) if explicitly mentioned.
+- **Avoid Multiple Subclassifications:** Do not assign multiple subclassifications within the same main category.
+  - **Allowed Example:**
+    - 3200 Research Area / Therapeutics / Development
+    - 6100 Research Area / Operational / Operational
+  - **Not Allowed Example:**
+    - 3200 Research Area / Therapeutics / Development
+    - 3201 Research Area / Therapeutics / Development / Phase 1
+  - **Not Allowed Example:**
+    - 3100 Research Area / Therapeutics / Discovery
+    - 3200 Research Area / Therapeutics / Development
+
+    
+### 4. Output Format:
+Provide a JSON object with the following structure:
+```json
+{{
+    "research_area": [list of research areas],
+    "explanation": "Explanation for the classification",
+    "confidence": float,  # Confidence score between 0 and 1
+    "confidence_explanation": "Explanation for the confidence score"
+}}
+
+
+Now here is the research that needs to be classified:
+
+- **Title:** {title}
+- **Abstract:** {abstract}
+
+"""
 
     examples = """
 

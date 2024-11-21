@@ -17,54 +17,60 @@ def construct_classification_string(data):
 def perform_classification(
     df,
     start_index,
-    end_index,
+    num_entries,
     model="gpt-4o-mini",
     include_examples=False,
     num_runs=10,
     threshold=0.8,
+    output_file=None,
 ):
-    results_df = df.iloc[start_index:end_index][["Title", "Abstract", "Categories"]]
-    results_df = results_df.rename(columns={"Categories": "Ground Truth"})
-    results_df[
-        [
-            "Prediction",
-            "Sector",
-            "Sector Overall Explanation",
-            "Sector Confidence",
-            "Sector Confidence Explanation",
-            "Research Area",
-            "Research Area Overall Explanation",
-            "Research Area Confidence",
-            "Research Area Confidence Explanation",
-            "Infectious Agent",
-            "Infectious Agent Overall Explanation",
-            "Infectious Agent Confidence",
-            "Infectious Agent Confidence Explanation",
-            "Categorisation Time",
-        ]
-    ] = ""
+    # Validate indices
+    if start_index >= len(df):
+        raise ValueError("Start index is beyond the dataframe length")
+
+    # Initialize tracking variables
+    successful_entries = 0
+    current_index = start_index
     total_time = 0
     category_counter = Counter()
 
-    # Create output file name
-    model_abbreviation = "o1" if model == "o1-mini" else "4o"
-    output_file = f"{model}_Human_Therapeutics_1060_{start_index}_{end_index}.xlsx"
+    # Initialize empty results DataFrame with columns
+    columns = [
+        "Title",
+        "Abstract",
+        "Ground Truth",
+        "Prediction",
+        "Sector",
+        "Sector Overall Explanation",
+        "Sector Confidence",
+        "Sector Confidence Explanation",
+        "Research Area",
+        "Research Area Overall Explanation",
+        "Research Area Confidence",
+        "Research Area Confidence Explanation",
+        "Infectious Agent",
+        "Infectious Agent Overall Explanation",
+        "Infectious Agent Confidence",
+        "Infectious Agent Confidence Explanation",
+        "Categorisation Time",
+    ]
+    results_df = pd.DataFrame(columns=columns)
 
-    # Save initial empty results
-    results_df.to_excel(output_file, index=False)
-
-    # Predictions
-    for index, row in df.iloc[start_index:end_index].iterrows():
-        if index % 50 == 0:
-            input("Press Enter to continue...")
-
+    while successful_entries < num_entries and current_index < len(df):
+        row = df.iloc[current_index]
         title = row["Title"]
         abstract = row["Abstract"]
         ground_truth = row["Categories"]
 
-        start_time = time.time()
+        if not isinstance(abstract, str) or not isinstance(title, str):
+            current_index += 1
+            continue
+        if not len(str(title) + str(abstract)) > 500:
+            current_index += 1
+            continue
 
-        print(f"Title: {title}")
+        start_time = time.time()
+        print(f"Processing index {current_index} - Title: {title}")
 
         sector_results = []
         research_area_results = []
@@ -138,73 +144,75 @@ def perform_classification(
                 infectious_agent_results, "infectious_agent"
             )
 
-            # Update results_df
-            results_df.at[index, "Sector"] = "\n".join(sector_avg[0])
-            results_df.at[index, "Sector Overall Explanation"] = sector_avg[1]
-            results_df.at[index, "Sector Confidence"] = sector_avg[2]
-            results_df.at[index, "Sector Confidence Explanation"] = sector_avg[3]
+            # Only add to results_df if classification was successful
+            if sector_results and research_area_results and infectious_agent_results:
+                new_row = {
+                    "Title": title,
+                    "Abstract": abstract,
+                    "Ground Truth": ground_truth,
+                    "Sector": "\n".join(sector_avg[0]),
+                    "Sector Overall Explanation": sector_avg[1],
+                    "Sector Confidence": sector_avg[2],
+                    "Sector Confidence Explanation": sector_avg[3],
+                    "Research Area": "\n".join(research_area_avg[0]),
+                    "Research Area Overall Explanation": research_area_avg[1],
+                    "Research Area Confidence": research_area_avg[2],
+                    "Research Area Confidence Explanation": research_area_avg[3],
+                    "Infectious Agent": "\n".join(infectious_agent_avg[0]),
+                    "Infectious Agent Overall Explanation": infectious_agent_avg[1],
+                    "Infectious Agent Confidence": infectious_agent_avg[2],
+                    "Infectious Agent Confidence Explanation": infectious_agent_avg[3],
+                }
 
-            results_df.at[index, "Research Area"] = "\n".join(research_area_avg[0])
-            results_df.at[index, "Research Area Overall Explanation"] = (
-                research_area_avg[1]
-            )
-            results_df.at[index, "Research Area Confidence"] = research_area_avg[2]
-            results_df.at[index, "Research Area Confidence Explanation"] = (
-                research_area_avg[3]
-            )
+                # Construct overall prediction
+                classification = construct_classification_string(
+                    [
+                        "\n".join(sector_avg[0]),
+                        "\n".join(research_area_avg[0]),
+                        "\n".join(infectious_agent_avg[0]),
+                    ]
+                )
+                new_row["Prediction"] = classification
 
-            results_df.at[index, "Infectious Agent"] = "\n".join(
-                infectious_agent_avg[0]
-            )
-            results_df.at[index, "Infectious Agent Overall Explanation"] = (
-                infectious_agent_avg[1]
-            )
-            results_df.at[index, "Infectious Agent Confidence"] = infectious_agent_avg[
-                2
-            ]
-            results_df.at[index, "Infectious Agent Confidence Explanation"] = (
-                infectious_agent_avg[3]
-            )
+                # Add timing information
+                end_time = time.time()
+                classification_time = end_time - start_time
+                new_row["Categorisation Time"] = classification_time
+                total_time += classification_time
 
-            classification = construct_classification_string(
-                [
-                    "\n".join(sector_avg[0]),
-                    "\n".join(research_area_avg[0]),
-                    "\n".join(infectious_agent_avg[0]),
-                ]
-            )
+                # Add the new row to results_df
+                results_df.loc[successful_entries] = new_row
+                successful_entries += 1
 
-            results_df.at[index, "Prediction"] = classification
-            print("Overall Classification:")
-            print(classification)
-            print("Ground Truth:")
-            print(ground_truth)
+                # Print results
+                print("Overall Classification:")
+                print(classification)
+                print("Ground Truth:")
+                print(ground_truth)
+                print(f"Successful entries: {successful_entries}/{num_entries}")
 
-            end_time = time.time()
-            classification_time = end_time - start_time
-            results_df.at[index, "Categorisation Time"] = classification_time
-            total_time += classification_time
-
-            # Save after each successful classification
-            results_df.to_excel(output_file, index=False)
+                # Save after each successful classification
+                results_df.to_excel(output_file, index=False)
 
         except Exception as e:
-            print(f"Exception occurred during classification of index {index}: {e}")
+            print(
+                f"Exception occurred during classification of index {current_index}: {e}"
+            )
             print("Skipping this entry.")
-            results_df = results_df.drop(index)
-            continue
 
-    if results_df.empty:
+        current_index += 1
+
+    if successful_entries == 0:
         print("No valid classifications were made. Exiting.")
-        return results_df, {}
+        return pd.DataFrame(), {}
 
-    average_time = total_time / len(results_df["Title"])
-    print(f"Average classification time: {average_time} seconds")
+    # Calculate and print statistics
+    average_time = total_time / successful_entries
+    print(f"\nAverage classification time: {average_time:.2f} seconds")
 
-    # Print category occurrences
     print("\nCategory occurrences:")
     for category, count in category_counter.items():
-        percentage = (count / (num_runs * (end_index - start_index))) * 100
+        percentage = (count / (num_runs * successful_entries)) * 100
         print(f"{category}: {count} ({percentage:.2f}%)")
 
     return results_df
@@ -212,35 +220,34 @@ def perform_classification(
 
 if __name__ == "__main__":
     # Load your data into DataFrame
-    # Human_Therapeutics_1060
-    file_path = "assets/Human_Therapeutics_1060.xlsx"
-
+    file_name = "4. Data_Dynamic Dashboard_test_19032024"
+    file_path = f"assets/{file_name}.xlsx"
     categorised_df = pd.read_excel(file_path)
 
-    # Generate a random index between 1 and the total number of rows in the DataFrame
-    random_index = random.randint(1, len(categorised_df))
+    start_index = 2000
+    num_entries = 200  # Specify desired number of entries
 
-    start_index = 0
-    end_index = 200
-
-    model = "o1-mini"
+    model = "gpt-4o-mini"
+    model_abbreviation = "o1" if model == "o1-mini" else "4o"
+    output_file = (
+        f"{model_abbreviation}_{file_name}_{start_index}_{num_entries}_entries.xlsx"
+    )
 
     # Perform classification
     results = perform_classification(
         categorised_df,
         start_index,
-        end_index,
+        num_entries,
         model=model,
         num_runs=1,
         threshold=0.8,
+        output_file=output_file,
     )
 
     if not results.empty:
         # Compute accuracies using the saved results
         print("\nComputing accuracies from results file...")
-        model_abbreviation = "o1" if model == "o1-mini" else "4o"
-        output_file = f"{model}_Human_Therapeutics_1060_{start_index}_{end_index}.xlsx"
         overall_accuracies, domain_stats = compute_excel_accuracies(
             output_file,
-            show_misclassifications=True,  # Enable misclassification analysis
+            print_misclassifications=True,
         )

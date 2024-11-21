@@ -42,21 +42,18 @@ You are an AI specialized in classifying research papers on antimicrobial resist
 #### d. Therapeutics Specifics:
 - **Therapeutics / Development:**
   - **When to Assign:** If therapeutic products are actively being developed.
-  - **Indicators:** Terms like "clinical trials," "Phase 1-3," "preclinical testing."
+  - **Indicators:** Terms like "clinical trials", "Phase 1-3" 
 - **Therapeutics / Discovery:**
   - **When to Assign:** If researching the feasibility of a product or idea is still in the early stages.
-  - **Indicators:** Terms like "target identification," "lead optimization."
+  - **Indicators:** Terms like "target identification", "lead optimization", "preclinical testing"
 - **Specific Phases:** Use specific subclassifications (e.g., Phase 1, Phase 2, Phase 3) if explicitly mentioned.
 - **Avoid Multiple Subclassifications:** Do not assign multiple subclassifications within the same main category.
-  - **Allowed Example:**
+  - **Valid:**
     - 3200 Research Area / Therapeutics / Development
     - 6100 Research Area / Operational / Operational
-  - **Not Allowed Example:**
+  - **Not Valid:**
     - 3200 Research Area / Therapeutics / Development
     - 3201 Research Area / Therapeutics / Development / Phase 1
-  - **Not Allowed Example:**
-    - 3100 Research Area / Therapeutics / Discovery
-    - 3200 Research Area / Therapeutics / Development
 
     
 ### 4. Output Format:

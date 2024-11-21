@@ -1,0 +1,160 @@
+# utils/processing.py
+
+import pandas as pd
+from .metrics import compute_hierarchical_accuracy
+from .error_analysis import (
+    identify_misclassifications,
+    prediction_accuracy,
+    analyze_error_constellations,
+    analyze_misclassifications,
+)
+from .visualizations import (
+    plot_accuracy_metrics,
+    plot_error_constellations,
+    plot_prediction_counts,
+)
+from .data_processing import process_excel_data
+import os
+
+
+def compute_excel_accuracies(
+    file_path,
+    print_options=None,
+    viz_options=None,
+):
+    """
+    Reads an Excel file and computes hierarchical accuracies for Ground Truth vs Prediction.
+
+    Args:
+        file_path (str): Path to the Excel file containing 'Ground Truth' and 'Prediction' columns
+        print_options (dict): Options controlling what analysis to print
+            - level_wise (bool): Print level-wise hierarchical accuracies
+            - prediction_wise (bool): Print prediction-wise accuracies
+            - misclassifications (bool): Print detailed misclassification analysis
+            - constellations (bool): Print error constellation analysis
+        viz_options (dict): Options controlling visualization outputs
+            - visualize_analysis (bool): Whether to display analysis plots
+            - save_plots (bool): Whether to save plots to files
+            - plot_save_dir (str): Directory for saving plots
+
+    Returns:
+        tuple: (domain_accuracies, prediction_summary, misclassifications, constellation_patterns)
+    """
+    # Set default options if none provided
+    if print_options is None:
+        print_options = {
+            "level_wise": True,
+            "prediction_wise": True,
+            "misclassifications": False,
+            "constellations": False,
+        }
+
+    if viz_options is None:
+        viz_options = {
+            "visualize_analysis": True,
+            "save_plots": False,
+            "plot_save_dir": "results/plots/",
+        }
+
+    # Read the Excel file
+    df = pd.read_excel(file_path)
+
+    # Process the data
+    ground_truths, predictions, skipped_entries = process_excel_data(df)
+
+    print(f"Processing {len(df)} entries...")
+    if skipped_entries > 0:
+        print(f"\nSkipped {skipped_entries} entries due to missing or invalid data")
+
+    # Run all analyses with controlled verbosity
+    domain_accuracies = compute_hierarchical_accuracy(
+        ground_truths=ground_truths,
+        predictions=predictions,
+        verbose=print_options["level_wise"],
+    )
+
+    prediction_summary = prediction_accuracy(
+        ground_truths=ground_truths,
+        predictions=predictions,
+        verbose=print_options["prediction_wise"],
+    )
+
+    # Generate output file path based on input file
+    filename = os.path.splitext(os.path.basename(file_path))[0]
+    misclass_output = os.path.join(os.path.dirname(file_path), "misclassifications.txt")
+
+    # Analyze misclassifications with output file
+    misclassifications = analyze_misclassifications(
+        ground_truths=ground_truths,
+        predictions=predictions,
+        verbose=print_options.get("misclassifications", False),
+        output_file=misclass_output,
+    )
+
+    # Set up plot save path if needed
+    plot_save_path = None
+    if viz_options["save_plots"]:
+        filename = os.path.splitext(os.path.basename(file_path))[0]
+        plot_save_path = os.path.join(viz_options["plot_save_dir"], filename)
+        os.makedirs(plot_save_path, exist_ok=True)
+
+    constellation_patterns = analyze_error_constellations(
+        ground_truths=ground_truths,
+        predictions=predictions,
+        save_plots=viz_options["save_plots"],
+        verbose=print_options["constellations"],
+    )
+
+    if viz_options["save_plots"]:
+        plot_error_constellations(
+            constellation_patterns,
+            save_path=plot_save_path,
+        )
+
+    # Handle visualization and saving of analysis plots
+    if viz_options["visualize_analysis"] or viz_options["save_plots"]:
+        if viz_options["save_plots"]:
+            filename = os.path.splitext(os.path.basename(file_path))[0]
+            metrics_save_path = os.path.join(
+                viz_options["plot_save_dir"], f"{filename}_metrics.png"
+            )
+            counts_save_path = os.path.join(
+                viz_options["plot_save_dir"], f"{filename}_counts.png"
+            )
+            const_save_path = os.path.join(
+                viz_options["plot_save_dir"], f"{filename}_constellations.png"
+            )
+            os.makedirs(os.path.dirname(metrics_save_path), exist_ok=True)
+        else:
+            metrics_save_path = None
+            counts_save_path = None
+            const_save_path = None
+
+        # Plot accuracy metrics
+        plot_accuracy_metrics(
+            domain_accuracies,
+            prediction_summary,
+            save_path=metrics_save_path,
+            show_plot=viz_options["visualize_analysis"],
+        )
+
+        # Plot prediction counts
+        plot_prediction_counts(
+            prediction_summary,
+            save_path=counts_save_path,
+            show_plot=viz_options["visualize_analysis"],
+        )
+
+        # Plot error constellations
+        plot_error_constellations(
+            constellation_patterns,
+            save_path=const_save_path,
+            show_plot=viz_options["visualize_analysis"],
+        )
+
+    return (
+        domain_accuracies,
+        prediction_summary,
+        misclassifications,
+        constellation_patterns,
+    )

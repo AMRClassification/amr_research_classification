@@ -89,7 +89,7 @@ def generate_prompt(title, abstract, include_examples=True, use_response_format=
             - Multiple infectious agent classifications are permitted **only** if multiple agents are explicitly mentioned or can be directly inferred as being the main topic.
             
         c. **Exclude External References:**
-            - Ignore any parts of the text that contain references to other resources, such as related work sections or citations to other research. Only consider the topics that are the direct topic of this current research at hand.
+            - Ignore any parts of the text that contain references to other resources, such as related work sections, citations to other research or earlier work. Only consider the topics that are the direct topic of this current research at hand.
                 
             
         4. **Output Format:**

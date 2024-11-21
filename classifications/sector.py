@@ -40,8 +40,8 @@ def generate_prompt(title, abstract, include_examples=True):
                 - Ignore any parts of the text that contain references to other resources, such as related work sections or citations to other research. Only consider the topics that are directly treated in the current research.
                 
             f. **Animal Testing for Human Purposes:**
-                - If the research involves **animal tests** to study the effects of AMR **on humans**, classify the sector as **"Human"** instead of **"Animal"**.
-                - Indicators may include phrases like "animal models to assess human health impacts," "testing on animals for human applications," etc.
+                - If the research involves **animal tests** to study the effects or treatments of AMR **for humans**, classify the sector as **"Human"** instead of **"Animal"**.
+                - Indicators may include phrases like "animal models to assess human health impacts," "testing on animals for human applications," "from vegetable oils," "studying ecologic-based structures," etc.
                 
             g. **Animal-Derived Derivatives for Human Use:**
                 - If the research mentions that any **derivatives** (instead of "ingredients") are **derived from animals** but are intended for **human** applications, classify the sector as **"Human"**.

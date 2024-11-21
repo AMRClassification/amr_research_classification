@@ -57,6 +57,15 @@ def perform_classification(
     results_df = pd.DataFrame(columns=columns)
 
     while successful_entries < num_entries and current_index < len(df):
+        # Ask for continuation every 50 samples
+        if successful_entries > 0 and successful_entries % 50 == 0:
+            user_input = input(
+                f"\nProcessed {successful_entries} entries. Continue? (y/n): "
+            )
+            if user_input.lower() != "y":
+                print("Stopping classification process...")
+                break
+
         row = df.iloc[current_index]
         title = row["Title"]
         abstract = row["Abstract"]
@@ -220,18 +229,17 @@ def perform_classification(
 
 if __name__ == "__main__":
     # Load your data into DataFrame
-    file_name = "4. Data_Dynamic Dashboard_test_19032024"
+    # 4. Data_Dynamic Dashboard_test_19032024
+    file_name = "Human_Therapeutics_1060"
     file_path = f"assets/{file_name}.xlsx"
     categorised_df = pd.read_excel(file_path)
 
-    start_index = 2000
-    num_entries = 200  # Specify desired number of entries
+    start_index = 800
+    num_entries = 10  # Specify desired number of entries
 
     model = "gpt-4o-mini"
     model_abbreviation = "o1" if model == "o1-mini" else "4o"
-    output_file = (
-        f"{model_abbreviation}_{file_name}_{start_index}_{num_entries}_entries.xlsx"
-    )
+    output_file = f"{model_abbreviation}_{file_name}_{start_index}_{num_entries}.xlsx"
 
     # Perform classification
     results = perform_classification(
@@ -247,7 +255,22 @@ if __name__ == "__main__":
     if not results.empty:
         # Compute accuracies using the saved results
         print("\nComputing accuracies from results file...")
-        overall_accuracies, domain_stats = compute_excel_accuracies(
-            output_file,
-            print_misclassifications=True,
+
+        # Define print options for different analysis views
+        print_options = {
+            "level_wise": True,
+            "prediction_wise": True,
+            "misclassifications": True,
+            "constellations": True,
+        }
+
+        # Define visualization options
+        viz_options = {
+            "visualize_analysis": True,
+            "save_plots": False,
+            "plot_save_dir": "results/plots/",
+        }
+
+        compute_excel_accuracies(
+            file_path=output_file, print_options=print_options, viz_options=viz_options
         )

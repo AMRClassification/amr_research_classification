@@ -26,13 +26,13 @@
 - **Includes:**
   - Target validation, hit identification, hit-to-lead, and lead optimization.
   - Screening of compounds for biological activity against specific pathogens.
+  - Preclinical safety and efficacy studies.
 - **TRL:** 4-5 (aligned with Discovery Phase)
 - **Keywords:** target validation, hit identification, lead optimization, compound screening
 
 #### **3200 Research Area / Therapeutics / Development**
 - **Focus:** Progressing identified therapeutic candidates through preclinical and clinical development toward commercialization.
 - **Includes:**
-  - Preclinical studies assessing efficacy and safety.
   - Clinical trials (Phase 1-3) to evaluate safety, dosage, and efficacy in humans.
   - Reformulation, repurposing, and manufacturing process validation.
 - **TRL:** 6-8 (aligned with Development Phase)
@@ -60,13 +60,13 @@
 - **Includes:**
   - Antigen identification, adjuvant selection, and carrier/delivery system development.
   - Immunogenicity testing using serum samples from exposed individuals.
+  - Preclinical safety and efficacy studies.
 - **TRL:** 4-5
 - **Keywords:** antigen identification, adjuvant selection, delivery system, immunogenicity
 
 #### **4120 Research Area / Vaccines / Development**
 - **Focus:** Progressing vaccine candidates through preclinical and clinical development stages.
 - **Includes:**
-  - Preclinical safety and efficacy studies.
   - Clinical trials (Phase 1-3) to assess safety, immunogenicity, and efficacy.
 - **TRL:** 6-8
 - **Subcategories:**
@@ -288,7 +288,7 @@ Understanding how **Research Areas** align with **Product Development Stages** a
 ### **4.1 Correct Classification Examples**
 
 - **Discovery:**
-  - *"Identifying novel inhibitors targeting bacterial resistance mechanisms."* → **3100 Research Area / Therapeutics / Discovery**
+  - *"Identifying novel inhibitors targeting bacterial resistance mechanisms and conducting preclinical trials."* → **3100 Research Area / Therapeutics / Discovery**
   
 - **Development:**
   - *"Conducting Phase 2 clinical trials for a new antibiotic."* → **3202 Research Area / Therapeutics / Development / Phase 2**

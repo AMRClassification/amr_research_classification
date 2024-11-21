@@ -1,0 +1,27 @@
+Misclassification Indices by Domain and Error Type
+==================================================
+
+
+Sector Domain:
+------------------------------
+
+
+Research Area Domain:
+------------------------------
+
+INCORRECT PREDICTIONS:
+Count: 5
+Indices: 2, 3, 8, 10, 11
+
+ADDITIONAL PREDICTIONS:
+Count: 1
+Indices: 6
+
+
+Infectious Agent Domain:
+------------------------------
+
+MISSING PREDICTIONS:
+Count: 1
+Indices: 10
+

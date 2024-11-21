@@ -3,7 +3,7 @@ import json
 import re
 import os
 
-file_path = "assets/3. Dashboard Categories_04.04.24.xlsx"
+file_path = "assets/Dashboard Categories to be used.xlsx"
 docs_path = "assets/docs"
 
 

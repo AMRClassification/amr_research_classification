@@ -57,7 +57,7 @@ def generate_prompt(title, abstract, include_examples=True):
             - The output should be a JSON object with the following structure:
             {{
                 "sector": [list of sectors],
-                "explanation": "explanation for the classification",
+                "explanation": "explanation for the classification. Include the words from the original text that proof the classification. If the explanation is telling that a certain sector is not explicitly mentioned, leave it out.",
                 "confidence": "float representing the confidence in the classification",
                 "confidence_explanation": "explanation for the confidence"
             }}

@@ -10,100 +10,75 @@ from utils.utils import (
 from utils.llm_call import classify_research_json
 
 
-def generate_prompt(title, abstract, include_examples=True, use_response_format=False):
+def generate_prompt(title, abstract, include_examples=True):
     infectious_agent_options = get_categories("Infectious Agent")
     infectious_agent_additional_info = get_additional_info("Infectious Agent")
 
-    if use_response_format:
-        base_prompt = f"""
-            You are an AI specialized in classifying research papers on antimicrobial resistance into relevant infectious agents based on their title and abstract. Follow the instructions and specifications below to determine the appropriate infectious agent(s).
+    base_prompt = f"""You are an AI specialized in classifying research papers on antimicrobial resistance into relevant infectious agents based on their title and abstract. Follow the instructions and specifications below to determine the appropriate infectious agent(s).
 
-        **Instructions:**
+    **Instructions:**
 
-        1. **Input:**
-            - **Title:** {title}
-            - **Abstract:** {abstract}
+    1. **Input:**
+        - **Title:** {title}
+        - **Abstract:** {abstract}
 
-        2. **Classification Rules:**
-            
-            a. **Direct Mention or Inference:**
-                - Only classify infectious agents that are directly mentioned or can be directly inferred from the title and abstract.
-                - If no specific infectious agents are mentioned or inferred, use the appropriate category:
-                    - "1900 Infectious Agent / Other / Other_Other" if the research is related to infectious agents but no specific agent is mentioned.
-                    - "1901 Infectious Agent / Not Specified / Not Specified_InfectiousAgent" if it's unclear whether infectious agents are involved.
-                    - "1902 Infectious Agent / Not Applicable / Not Applicable" if the research clearly does not involve or is not related to any infectious agents.
-                
-            b. **Multiple Classifications:**
-                - Multiple infectious agent classifications are permitted **only** if multiple agents are explicitly mentioned or can be directly inferred as being the main topic.
-                
-            c. **Exclude External References:**
-                - Ignore any parts of the text that contain references to other resources, such as related work sections or citations to other research. Only consider the topics that are the direct topic of this current research at hand.
-                
-        3. **Classification Choices:**
-            {infectious_agent_options}
+    2. **Classification Choices:**
+        {infectious_agent_options}
 
-        4. **Output Format:**
-            - The output should be a JSON object with the following structure:
-            {{
-                "infectious_agent": [list of infectious agents],
-                "explanation": "explanation for the classification",
-                "confidence": "float representing the confidence in the classification",
-                "confidence_explanation": "explanation for the confidence"
-            }}
+    3. **Classification Rules:**
 
-        **Now, perform the classification for the following research paper given only these classification choices:**
-"""
+    a. **Direct Mention Only:**
+        - Only classify infectious agents that are directly and concretely mentioned in the title and abstract; do not infer agents.
+        - If examples of infectious agents are mentioned using phrases like “such as”, “including”, or “for example” but they arent the concrete focus of this research, do not consider them.
+        - If infectious agents are introduced as examples in the beginning but are not the main focus or are not further discussed for concrete treatment, don't consider them.
 
-    else:
-        base_prompt = f"""
-            You are an AI specialized in classifying research papers on antimicrobial resistance into relevant infectious agents based on their title and abstract. Follow the instructions and specifications below to determine the appropriate infectious agent(s).
+        - Classification Based on Specificity:
+            1. For bacteria without specified type:
+                - If bacteria are mentioned without indicating Gram status, classify as:
+                    - "1500 Infectious Agent / Bacteria / Bacteria / Not Specified_Bacteria"
+                - Similarly use corresponding "Not Specified" classifications for other unspecified categories
+            2. For specified Gram status:
+                - If Gram negative bacteria are mentioned but not specified, or if specific unlisted, classify as:
+                    - "1503 Infectious Agent / Bacteria / Gram negative / Other Gram negative"
+                - Apply same rule for Gram positive/variable or other infectious agents (parasites, fungi, etc.) using appropriate "Other" category
+            3. For unspecified infectious agents:
+                - If research relates to infectious agents but the category is not mentioned, classify as:
+                    - "1901 Infectious Agent / Not Specified / Not Specified_InfectiousAgent"
+            4. For non-infectious agent research:
+                - If research has no relation to infectious agents, classify as:
+                    - "1902 Infectious Agent / Not Applicable / Not Applicable"
+        - Specific vs. General Mentions:
+            - For specific agents not in classification list, use appropriate "Other" category:
+                - For unlisted Gram negative bacteria: "1503 Infectious Agent / Bacteria / Gram negative / Other Gram negative"
+                - For unlisted Gram positive bacteria: "1513 Infectious Agent / Bacteria / Gram positive / Other Gram positive"
 
-        **Instructions:**
+    b. **Multiple Classifications:**
+        - Assign multiple classifications when:
+            - Multiple infectious agents are explicitly mentioned as main topics
+            - Research describes multiple efforts targeting different agents/categories
+        - Use single classification when:
+            - One agent/category is primary focus
+            - Other mentions are only examples or peripheral references
 
-        1. **Input:**
-            - **Title:** {title}
-            - **Abstract:** {abstract}
+    c. **Exclude External References:**
+        - Ignore:
+            - References to other resources or studies
+            - Infectious agents mentioned only in context of other research
+        - Focus only on infectious agents directly studied in current research
 
-        2. **Classification Choices:**
-            {infectious_agent_options}
 
-        3 **Classification Rules:**
-            
-        a. **Direct Mention or Inference:**
-            - Only classify infectious agents that are directly mentioned or can be directly inferred from the title and abstract.
-            - For research mentioning a specific category without details:
-                - Use "1500 Infectious Agent / Bacteria / Bacteria / Not Specified_Bacteria" if bacteria are mentioned without specifying which ones
-                - Use "1801 Infectious Agent / Virus / Virus / Not Specified_Virus" if viruses are mentioned without specifying which ones
-                - Use "1700 Infectious Agent / Parasite / Parasite / Not Specified_Parasite" if parasites are mentioned without specifying which ones
-                - Use "1600 Infectious Agent / Fungus / Fungus / Not Specified_Fungus" if fungi are mentioned without specifying which ones
-            - For research mentioning specific agents not in our categories:
-                - Use "1503 Infectious Agent / Bacteria / Gram negative / Other Gram negative" or similar bacterial categories for uncategorized bacteria
-                - Use "1802 Infectious Agent / Virus / Virus / Other_Virus" for uncategorized viruses
-                - Use "1702 Infectious Agent / Parasite / Other_Parasite" for uncategorized parasites
-                - Use "1602 Infectious Agent / Fungus / Other_Fungus" for uncategorized fungi
-            - For other cases:
-                - Use "1901 Infectious Agent / Not Specified / Not Specified_InfectiousAgent" if no infectious agent is specified at all
-                - Use "1900 Infectious Agent / Other / Other_Other" if the infectious agent is specified but doesn't fit into bacteria, virus, parasite, or fungus categories
-                - Use "1902 Infectious Agent / Not Applicable / Not Applicable" if the research is not related to any infectious agents
-        b. **Multiple Classifications:**
-            - Multiple infectious agent classifications are permitted **only** if multiple agents are explicitly mentioned or can be directly inferred as being the main topic.
-            
-        c. **Exclude External References:**
-            - Ignore any parts of the text that contain references to other resources, such as related work sections, citations to other research or earlier work. Only consider the topics that are the direct topic of this current research at hand.
-                
-            
-        4. **Output Format:**
-            - The output should be a JSON object with the following structure:
-            {{
-                "infectious_agent": [list of infectious agents],
-                "explanation": "explanation for the classification",
-                "confidence": "float representing the confidence in the classification",
-                "confidence_explanation": "explanation for the confidence"
-            }}
+    4. **Output Format:**
+        - The output should be a JSON object with the following structure:
+        {{
+            "infectious_agent": [list of infectious agents],
+            "explanation": "explanation for the classification. Include the words from the original text that proof the classification. If the explanation is telling that a certain infectious agent is not explicitly mentioned, leave it out.",
+            "confidence": "float representing the confidence in the classification",
+            "confidence_explanation": "explanation for the confidence"
+        }}
 
-        **Now, perform the classification for the following research paper given only these classification choices:**
+    **Now, perform the classification for the following research paper given only these classification choices:**
 
-        **Output:**
+    **Output:**
     """
     return base_prompt
 

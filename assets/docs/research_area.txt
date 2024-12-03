@@ -1,322 +1,216 @@
-## **1. Research Area Categories**
+Research Area
 
-### **1.1 Basic Research**
 
-#### **2100 Research Area / Basic Research / Fundamental**
-- **Focus:** Investigating fundamental biological processes without immediate application toward a specific product.
-- **Includes:**
-  - Studies on pathogen mechanisms, transmission, virulence.
-  - Fundamental immunology, genetics, and microbiome research.
-  - One Health interactions involving humans, animals, and the environment.
-- **Technology Readiness Levels (TRL):** 1-2
-- **Keywords:** pathogen mechanisms, virulence, immunology, genetics, microbiome, One Health
+1.	Basic Research
 
-#### **2200 Research Area / Basic Research / Towards a Product**
-- **Focus:** Translational research aimed at applying fundamental discoveries to develop new products.
-- **Includes:**
-  - Development of models and technologies for drug and vaccine design.
-  - Early-stage identification of potential therapeutic targets.
-- **Technology Readiness Levels (TRL):** 2-3
-- **Keywords:** translational research, drug design, vaccine design, therapeutic targets, early-stage
+•	Focus: Fundamental understanding of diseases, immune responses, or pathogens not directed toward a specific product.
+•	Stages: Technology Readiness Levels (TRL) 1-3.
+•	Includes:
 
-### **1.2 Therapeutics**
+•	Sub-categories:
 
-#### **3100 Research Area / Therapeutics / Discovery**
-- **Focus:** Early-stage research to identify and validate new therapeutic targets or active compounds.
-- **Includes:**
-  - Target validation, hit identification, hit-to-lead, and lead optimization.
-  - Screening of compounds for biological activity against specific pathogens.
-  - Preclinical safety and efficacy studies.
-- **TRL:** 4-5 (aligned with Discovery Phase)
-- **Keywords:** target validation, hit identification, lead optimization, compound screening
 
-#### **3200 Research Area / Therapeutics / Development**
-- **Focus:** Progressing identified therapeutic candidates through preclinical and clinical development toward commercialization.
-- **Includes:**
-  - Clinical trials (Phase 1-3) to evaluate safety, dosage, and efficacy in humans.
-  - Reformulation, repurposing, and manufacturing process validation.
-- **TRL:** 6-8 (aligned with Development Phase)
-- **Subcategories:**
-  - **3201:** Phase 1 Clinical Trials
-  - **3202:** Phase 2 Clinical Trials
-  - **3203:** Phase 3 Clinical Trials
-  - **3204:** Approval Pipeline
-  - **3205:** Marketed Products Pipeline
-- **Keywords:** clinical trials, Phase 1, Phase 2, Phase 3, preclinical, efficacy, safety, reformulation
+a)	Fundamental - no clear path to product development (TLR 1-2)
+•	 Studies on pathogen mechanisms, transmission, virulence, immunology, genetics, microbiome roles, and One Health interactions involving humans, animals, and the environment. 
 
-#### **3400 Research Area / Therapeutics / Approval & Post approval**
-- **Focus:** Activities related to regulatory approval and post-market surveillance of therapeutic products.
-- **Includes:**
-  - Submission of regulatory dossiers (e.g., NDA, NADA).
-  - Post-approval requirements such as pharmacovigilance and product optimization.
-  - Expansion of product labels and additional indications.
-- **TRL:** 9 (aligned with Approval and Post-Approval Phase)
-- **Keywords:** regulatory submission, NDA, NADA, pharmacovigilance, post-market surveillance
+b)	Towards a product - has the potential to become a product (TLR 3)
+•	Search for potential therapeutic, preventive, promotants or diagnostic target
+•	Early research for the development of imaging or detection technologies/assays
+•	Models and technologies assisting in drug and vaccine design and testing.
+•	Identification of mode of action of putative new products
+•	Platform technologies for vaccines 
 
-### **1.3 Vaccines**
 
-#### **4110 Research Area / Vaccines / Discovery**
-- **Focus:** Early-stage vaccine research focused on identifying and characterizing vaccine components.
-- **Includes:**
-  - Antigen identification, adjuvant selection, and carrier/delivery system development.
-  - Immunogenicity testing using serum samples from exposed individuals.
-  - Preclinical safety and efficacy studies.
-- **TRL:** 4-5
-- **Keywords:** antigen identification, adjuvant selection, delivery system, immunogenicity
 
-#### **4120 Research Area / Vaccines / Development**
-- **Focus:** Progressing vaccine candidates through preclinical and clinical development stages.
-- **Includes:**
-  - Clinical trials (Phase 1-3) to assess safety, immunogenicity, and efficacy.
-- **TRL:** 6-8
-- **Subcategories:**
-  - **4122:** Phase 1 Clinical Trials
-  - **4123:** Phase 2 Clinical Trials
-  - **4124:** Phase 3 Clinical Trials
-- **Keywords:** clinical trials, Phase 1, Phase 2, Phase 3, preclinical, safety, efficacy
+2.	Therapeutics
 
-#### **4140 Research Area / Vaccines / Approval & Post approval**
-- **Focus:** Regulatory approval and post-market activities for vaccines.
-- **Includes:**
-  - Submission of vaccine dossiers for regulatory approval.
-  - Post-approval monitoring and additional research for optimization.
-- **TRL:** 9
-- **Keywords:** regulatory submission, approval, post-market monitoring, optimization
+•	Focus: Product-specific R&D for treatment of infections using antimicrobials.
+•	Includes:
+•	Improvement of existing antimicrobials and therapies.
+•	Combination therapies and dose optimization studies.
+•	Development of new antimicrobials and alternatives (e.g., antibodies, probiotics, faecal transplant therapy, bacteriophages, antimicrobial peptides, lysins, antitoxins and immune modulators).
+•	Investigation of old or off market antimicrobials
+•	Drug quality, bioavailability, stability
 
-### **1.4 Preventives - Other**
+•	Sub-categories:
+a)	Discovery-discovery and preclinical testing of innovative methods
+•	Target assessment & validation, the hit discovery process (hit identification, hit to lead, lead identification, lead optimisation)
+•	Preclinical development – ends with submission of an IND (Investigational New Drug) application
 
-#### **4200 Research Area / Preventives Other / Other_PreventivesOther**
-- **Focus:** Non-vaccine products that prevent diseases without inducing specific immune memory.
-- **Includes:**
-  - Prophylactic treatments, immune modulators, and breeding for disease resistance.
-  - Development of anti-biofilm agents and other preventive technologies.
-- **TRL:** Varies based on specific preventive strategy.
-- **Keywords:** prophylactic treatments, immune modulators, disease resistance, anti-biofilm
+b)	Development – Clinical trials phase 1- phase 3
+•	Clinical Studies/Trials Phase 1 to Phase 3, also includes trials that will lead to an expansion of the product label or additional indications (diseases/infections)
+•	This stage concludes with submission of an NDA (New Drug Application)
 
-#### **4210 Research Area / Preventives Other / Discovery**
-- **Focus:** Early-stage research identifying new preventive strategies and agents.
-- **Includes:**
-  - Identification of new immune modulators or prophylactic compounds.
-  - Genetic studies for breeding disease-resistant organisms.
-- **TRL:** 1-3
-- **Keywords:** immune modulators, prophylactic compounds, genetic studies, disease resistance
+c)	Approval/Post Approval - 
+•	First market authorisation (early-commercialisation) for a specific product
+•	All subsequent research and monitoring required by regulators (post-approval requirements or post-authorisation obligations), pharmacovigilance (phase 4)
+•	Studies how a product should be used in a clinical setting to inform among others product formulary inclusion, guideline incorporation, value assessment and payor decisions
+•	Approved product optimisation (such as bioavailability, formulations)
+•	How a product should be used in a clinical setting to inform among others product formulary inclusion, guideline incorporation, value-assessment and payor decisions
 
-#### **4220 Research Area / Preventives Other / Development**
-- **Focus:** Advancing preventive agents from discovery to preclinical and clinical stages.
-- **Includes:**
-  - Preclinical testing of prophylactic agents.
-  - Clinical trials for immune modulators or other preventive products.
-- **TRL:** 4-8
-- **Keywords:** preclinical testing, clinical trials, prophylactic agents, immune modulators
 
-#### **4240 Research Area / Preventives Other / Approval & Post approval**
-- **Focus:** Regulatory approval and post-market activities for preventive products.
-- **Includes:**
-  - Submission of dossiers for approval of preventive agents.
-  - Post-market surveillance and optimization studies.
-- **TRL:** 9
-- **Keywords:** regulatory submission, approval, post-market surveillance, optimization
 
-### **1.5 Diagnostics**
+3.	Vaccines
 
-#### **5100 Research Area / Diagnostics / Discovery**
-- **Focus:** Early-stage research to identify new diagnostic targets and develop prototype diagnostic tools.
-- **Includes:**
-  - Identification of causative agents and resistance profiles.
-  - Concept and feasibility studies for new diagnostic methods.
-- **TRL:** 1-5
-- **Keywords:** diagnostic targets, resistance profiles, prototype development, feasibility studies
+•	Focus: Products stimulating the adaptive immune system to prevent disease.
+•	Includes:
+•	Research on vaccine development challenges (e.g., antigen identification, delivery methods).
+•	Identification and assessment of vaccine candidates for safety and eﬃcacy.
 
-#### **5200 Research Area / Diagnostics / Development**
-- **Focus:** Developing and validating diagnostic tools for clinical and field use.
-- **Includes:**
-  - Prototype development, technical specification development.
-  - Validation of diagnostic accuracy and performance in relevant settings.
-- **TRL:** 6-8
-- **Keywords:** diagnostic validation, prototype development, technical specifications, accuracy
+•	Sub-categories:
+a)	Discovery
+•	identification, selection and improvement/characterisation of vaccine components (antigen, adjuvant, carrier/delivery system, etc) that have the ability to induce immunogenicity (induction of cellular and humoral immune response/adaptive immune responses)
+•	testing of serum in order to identify antigens/immunogens (samples from exposed individuals for testing immunogenicity), testing for ability to induce protective immune responses (e.g. by challenge with pathogen in animal or human models)
+b)	Development
+•	Clinical Studies/Trials Phase 1 to Phase 3, also includes trials that will lead to an expansion of the product label or additional indications (diseases/infections)
+•	This stage concludes with submission of an NDA (New Drug Application)
 
-#### **5400 Research Area / Diagnostics / Approval & Post approval**
-- **Focus:** Regulatory approval and post-market activities for diagnostic tools.
-- **Includes:**
-  - Submission of diagnostic tools for regulatory approval.
-  - Post-approval monitoring and performance optimization.
-- **TRL:** 9
-- **Keywords:** regulatory submission, diagnostic approval, post-market monitoring, optimization
+c)	Approval/Post Approval
+•	First market authorisation (early-commercialisation) for a specific product
+•	All subsequent research and monitoring required by regulators (post-approval requirements or post-authorisation obligations), pharmacovigilance (phase 4)
+•	Studies how a product should be used in a clinical setting to inform among others product formulary inclusion, guideline incorporation, value assessment and payor decisions
+•	Approved product optimisation (such as bioavailability, formulations)
+•	How a product should be used in a clinical setting to inform among others product formulary inclusion, guideline incorporation, value-assessment and payor decisions
 
-### **1.6 Promotants**
 
-#### **5600 Research Area / Promotants / Promotants**
-- **Focus:** Products that enhance health or productivity without addressing disease.
-- **Includes:**
-  - Probiotics, prebiotics, antimicrobial peptides, phytochemicals.
-  - Organic acids, enzymes, and other growth-promoting alternatives.
-- **TRL:** Varies based on specific promotant.
-- **Keywords:** probiotics, prebiotics, antimicrobial peptides, phytochemicals, growth-promoting
 
-### **1.7 Other Products**
+4.	Preventives - Other
 
-#### **5500 Research Area / Other Products / Other Products**
-- **Focus:** External or topical applications not classified under other categories.
-- **Includes:**
-  - Biocides, antiseptics, disinfectants.
-  - Biofilm prevention materials, medical devices, wound care products.
-  - Health monitoring technologies such as sensors in animals.
-- **TRL:** Varies based on product type.
-- **Keywords:** biocides, antiseptics, disinfectants, biofilm prevention, medical devices, sensors
+•	Focus: Non-vaccine products preventing disease without inducing specific immune memory.
+•	Includes:
+•	Prophylactic treatments.
+•	Immune modulators enhancing general immune function.
+•	Breeding for disease resistance (e.g., genome editing).
+•	Anti-biofilm agents.
 
-### **1.8 Operational Research**
+• Sub-categories:
+a)	Discovery
+•	identification, selection and improvement/characterisation of product
+b)	Development
+•	clinical trial Phase 1 to Phase 3, also includes trials that will lead to an expansion of the product label (additional indications)
+•	This stage concludes with submission of an NDA (New Drug Application)
+c)	Approval/Post Approval
+•	First market authorization (early-commercialisation) for a specific product
+•	All subsequent research and monitoring required by regulators (post-approval requirements or post-authorisation obligations), pharmacovigilance (phase 4)
+•	Studies how a product should be used in a clinical setting to inform among and payor decisions
+•	Approved product optimisation (such as bioavailability, formulations)
+•	How a product should be used in a clinical setting to inform among others product formulary inclusion, guideline incorporation, value-assessment and payor decisions
 
-#### **6100 Research Area / Operational / Operational**
-- **Focus:** Research supporting decision-making and management strategies in AMR.
-- **Includes:**
-  - Infection prevention and control practices.
-  - Antimicrobial stewardship, access and availability studies.
-  - Surveillance, epidemiological studies, social science research on behavior change, economic analyses.
-- **TRL:** N/A (Operational research does not fit into TRLs)
-- **Keywords:** infection prevention, antimicrobial stewardship, surveillance, epidemiological studies, economic analyses
 
-### **1.9 Capacity Building**
+5.	Diagnostics
 
-#### **7200 Research Area / Capacity Building / Capacity Building**
-- **Focus:** Enhancing human and infrastructural resources to tackle AMR.
-- **Includes:**
-  - Laboratory capacity enhancement, training, and staff development.
-  - Network formation for knowledge sharing.
-  - Process improvements beyond single products.
-- **TRL:** N/A
-- **Keywords:** laboratory capacity, training, staff development, knowledge sharing, process improvements
+•	Focus: Development or improvement of detection, screening, or diagnostic tools.
+•	Includes:
+•	Identification of causative agents and resistance profiles.
+•	Diagnostic tests for clinical and field use.
+•	Tools for surveillance and epidemiological studies.
+•	Companion diagnostics and machine learning detection tools.
 
-### **1.10 Policy**
 
-#### **7100 Research Area / Policy / Policy**
-- **Focus:** Informing policy and regulation development or revision related to AMR.
-- **Includes:**
-  - Research proposing policy changes or stakeholder actions.
-  - Studies on healthcare services impact, economic models, health technology assessments.
-- **TRL:** N/A
-- **Keywords:** policy development, regulation, economic models, health technology assessments
+• Sub-categories:
+a)	Discovery
+•	concept, feasibility, prototype development, and development of technical specifications
+b)	Development
+•	design lock, validation of manufacturing process, validation of accuracy and analytical performance in (clinical) trials, validation of performance and operational characteristics during uncontrolled routine use in programmatic settings
+c)	Approval/Post Approval
+•	First market authorisation (early-commercialisation) for a specific product
+•	All subsequent research and monitoring required by regulators (post-approval requirements or post-authorisation obligations), pharmacovigilance (phase 4)
+•	Studies how a product should be used in a clinical setting to inform among others product formulary inclusion, guideline incorporation, value assessment and payor decisions
+•	Approved product optimisation (such as bioavailability, formulations)
+•	How a product should be used in a clinical setting to inform among others product formulary inclusion, guideline incorporation, value-assessment and payor decisions
 
----
 
-## **2. Product Development Stages**
+ 
+ 
+6.	Promotants
 
-Understanding how **Research Areas** align with **Product Development Stages** and **Technology Readiness Levels (TRL)** is essential for accurate classification. Here's a concise mapping to assist the model:
+•	Focus: Products improving health or productivity in the absence of disease.
+•	Includes:
+•	Probiotics and prebiotics.
+•	Antimicrobial peptides and phytochemicals.
+•	Organic acids, enzymes, and other growth-promoting alternatives.
 
-### **2.1 Discovery (TRL 4-5)**
-- **Applies To:**
-  - **Therapeutics/Discovery (3100)**
-  - **Vaccines/Discovery (4110)**
-  - **Preventives Other/Discovery (4210)**
-  - **Diagnostics/Discovery (5100)**
-- **Activities:**
-  - Initial identification and validation of targets or components.
-  - Early-stage preclinical testing.
-- **Keywords:** identification, validation, preclinical testing
 
-### **2.2 Development (TRL 6-8)**
-- **Applies To:**
-  - **Therapeutics/Development (3200)**
-  - **Vaccines/Development (4120)**
-  - **Preventives Other/Development (4220)**
-  - **Diagnostics/Development (5200)**
-- **Activities:**
-  - Clinical trials, safety and efficacy testing.
-  - Manufacturing process validation.
-- **Keywords:** clinical trials, safety testing, efficacy testing, manufacturing validation
+7.	Other Products
 
-### **2.3 Approval & Post Approval (TRL 9)**
-- **Applies To:**
-  - **Therapeutics/Approval & Post approval (3400)**
-  - **Vaccines/Approval & Post approval (4140)**
-  - **Preventives Other/Approval & Post approval (4240)**
-  - **Diagnostics/Approval & Post approval (5400)**
-- **Activities:**
-  - Regulatory submissions and approvals.
-  - Post-market surveillance and optimization.
-- **Keywords:** regulatory submission, approval, post-market surveillance, optimization
+•	Focus: External or topical applications not classified elsewhere.
+•	Includes:
+•	Biocides (antiseptics, disinfectants).
+•	Biofilm prevention materials.
+•	Medical devices and wound care products.
+•	Health monitoring technologies (e.g., sensors in animals).
 
----
 
-## **3. Guidelines for Accurate Classification**
+8.	Operational Research
 
-### **3.1 Distinguishing Therapeutics Categories**
+•	Focus: Aiding decision-making and management strategies.
+•	Includes:
+•	Infection prevention and control practices.
+•	Antimicrobial stewardship and optimal use studies.
+•	Access and availability improvements for AMR technologies.
+•	Surveillance and epidemiological studies.
+•	Social science research on behavior change and economic analyses.
 
-- **Therapeutics/Discovery (3100):**
-  - **Focus:** Identifying new drug targets or active compounds.
-  - **Indicators:** "target validation," "hit identification," "lead optimization."
-  
-- **Therapeutics/Development (3200):**
-  - **Focus:** Advancing therapeutics through clinical trials.
-  - **Indicators:** "clinical trials," "Phase 1-3," "efficacy testing," "safety studies."
-  
-- **Therapeutics/Approval & Post approval (3400):**
-  - **Focus:** Regulatory approval and post-market activities.
-  - **Indicators:** "regulatory submission," "NDA," "pharmacovigilance," "market surveillance."
 
-### **3.2 Avoiding Over-Classification into Development**
+9.	Capacity Building
 
-- **Contextual Alignment:**
-  - Determine if the research is about identifying new therapeutics (**Discovery**) vs. advancing known candidates (**Development**).
-  
-- **Specific Indicators:**
-  - **Development:** Terms like "clinical trials," "Phase 1-3."
-  - **Discovery:** Terms like "target identification," "lead optimization."
-  
-- **Basic Research Overlap:**
-  - If focused on understanding disease mechanisms without direct product application, classify under **Basic Research** instead of **Therapeutics**.
+•	Focus: Enhancing human and infrastructural resources to tackle AMR.
+•	Includes:
+•	Laboratory capacity enhancement.
+•	Training and staﬀ development.
+•	Network formation for knowledge sharing.
+•	Process improvements beyond single products.
 
-### **3.3 Leveraging TRLs Effectively**
 
-- **Map Activities to TRLs:**
-  - Align the research stage with the appropriate TRL range.
-  
-- **Ensure Activity Fit:**
-  - Verify that described activities correspond to the TRL of the target category.
+10.	Policy
 
-### **3.4 Comprehensive Category Definitions**
+•	Focus: Informing policy and regulation development or revision.
+•	Includes:
+•	Research proposing policy changes or stakeholder action.
+•	Studies on healthcare services impact, economic models, and health technology assessments.
+ 
+Product Development Stages
+( for Therapeutics, Diagnostics, Vaccines, Preventives-Other)
 
-- **Avoid Ambiguity:**
-  - Clearly define each category with specific activities and focus areas to minimize overlap.
-  
-- **Mutually Exclusive Classifications:**
-  - Ensure each classification is distinct based on refined definitions.
 
----
+1.	Discovery
 
-## **4. Examples for Clarification**
+•	TRL: 4-5.
+•	Includes:
+•	Target validation and hit discovery for therapeutics and preventives.
+•	Vaccine component identification and improvement.
+•	Diagnostic concept development and prototype creation.
+•	Preclinical trials
 
-### **4.1 Correct Classification Examples**
 
-- **Discovery:**
-  - *"Identifying novel inhibitors targeting bacterial resistance mechanisms and conducting preclinical trials."* → **3100 Research Area / Therapeutics / Discovery**
-  
-- **Development:**
-  - *"Conducting Phase 2 clinical trials for a new antibiotic."* → **3202 Research Area / Therapeutics / Development / Phase 2**
-  
-- **Basic Research:**
-  - *"Studying the genetic basis of pathogen virulence in vitro."* → **2100 Research Area / Basic Research / Fundamental**
-  
-- **Policy:**
-  - *"Assessing the economic impact of antimicrobial stewardship programs."* → **7100 Research Area / Policy / Policy**
+2.	Development
 
-### **4.2 Avoiding Misclassification**
+•	TRL: 6-8.
+•	Includes:
+•	Clinical trials (Phases 1-3) for human therapeutics and preventives.
+•	Safety and eﬀectiveness studies for animal health products.
+•	Validation of manufacturing processes and product performance.
 
-- **Misclassified as Development:**
-  - *"Exploring the role of microbiomes in disease resistance."* → Should be **2100 Research Area / Basic Research / Fundamental**, not **3200 Therapeutics/Development**.
-  
-- **Misclassified as Therapeutics/Development:**
-  - *"Developing models to predict vaccine efficacy."* → Should be **4110 Research Area / Vaccines / Discovery** or **4120 Research Area / Vaccines / Development**, depending on the stage.
+
+3.	Approval and Post-Approval
+
+•	TRL: 9.
+•	Includes:
+•	Regulatory filings in various jurisdictions.
+•	Post-approval obligations (e.g., pharmacovigilance).
+•	Product optimization research.
+•	Clinical studies informing product use and guidelines.
+
 
 
 
 Technology Readiness Levels (TRL)
-
-TRL 1: Basic principles observed.
-TRL 2: Concept formulated.
-TRL 3: Experimental proof of concept.
-TRL 4: Technology validated in the lab.
-TRL 5: Technology validated in a relevant environment.
-TRL 6: Technology demonstrated in a relevant environment.
-TRL 7: System prototype in an operational environment.
-TRL 8: System complete and qualified.
-TRL 9: Actual system proven in operational environment.
+•	TRL 1: Basic principles observed.
+•	TRL 2: Concept formulated.
+•	TRL 3: Experimental proof of concept.
+•	TRL 4: Technology validated in the lab.
+•	TRL 5: Technology validated in a relevant environment.
+•	TRL 6: Technology demonstrated in a relevant environment.
+•	TRL 7: System prototype in an operational environment.
+•	TRL 8: System complete and qualified.
+•	TRL 9: Actual system proven in operational environment.

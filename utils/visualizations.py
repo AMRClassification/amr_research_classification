@@ -12,43 +12,78 @@ def plot_accuracy_metrics(
     """
     Creates visualization of accuracy percentages using seaborn.
     """
-    # Set the style
     sns.set_style("whitegrid")
 
-    # Create figure with two subplots
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    # Create figure with custom GridSpec layout
+    fig = plt.figure(figsize=(15, 8))
+    gs = fig.add_gridspec(2, 2)
 
-    # Level-wise accuracies (top)
+    # Create axes with the new layout
+    ax1 = fig.add_subplot(gs[0, 0])  # Level-wise accuracies (top-left)
+    ax2 = fig.add_subplot(gs[1, 0])  # Uncertain predictions (bottom-left)
+    ax3 = fig.add_subplot(
+        gs[:, 1]
+    )  # Prediction-wise accuracies (right, spans both rows)
+
+    # Level-wise accuracies (top-left)
     level_data = []
     domains = []
+    available_levels = set()
+
     for domain, stats in domain_accuracies.items():
         domains.append(domain)
         for level in range(1, 4):
-            matches = stats["matches"][level]
             totals = stats["totals"][level]
-            accuracy = matches / totals if totals > 0 else 0
-            level_data.append(
-                {
-                    "Domain": domain,
-                    "Level": f"Level {level}",
-                    "Accuracy": accuracy * 100,
-                }
-            )
+            if totals > 0:
+                available_levels.add(level)
+                matches = stats["matches"][level]
+                accuracy = matches / totals
+                level_data.append(
+                    {
+                        "Domain": domain,
+                        "Level": f"Level {level}",
+                        "Accuracy": accuracy * 100,
+                    }
+                )
 
-    df_levels = pd.DataFrame(level_data)
-    sns.barplot(data=df_levels, x="Domain", y="Accuracy", hue="Level", ax=ax1)
-    ax1.set_title("Level-wise Accuracies by Domain")
-    ax1.set_ylabel("Accuracy (%)")
+    if level_data:
+        df_levels = pd.DataFrame(level_data)
+        df_levels["Level"] = pd.Categorical(
+            df_levels["Level"],
+            categories=[f"Level {l}" for l in sorted(available_levels)],
+            ordered=True,
+        )
 
-    # Fix x-axis labels
-    ax1.set_xticks(range(len(domains)))
-    ax1.set_xticklabels(domains, rotation=45, ha="right")
+        sns.barplot(data=df_levels, x="Domain", y="Accuracy", hue="Level", ax=ax1)
+        ax1.set_title("Level-wise Accuracies by Domain")
+        ax1.set_ylabel("Accuracy (%)")
+        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=45, ha="right")
 
-    # Add value labels
-    for container in ax1.containers:
-        ax1.bar_label(container, fmt="%.1f%%", padding=3)
+        for container in ax1.containers:
+            ax1.bar_label(container, fmt="%.1f%%", padding=3)
 
-    # Prediction-wise accuracies (bottom)
+    # Uncertain predictions (bottom-left)
+    uncertain_data = []
+    for domain, stats in domain_accuracies.items():
+        uncertain_count = stats.get("uncertain", 0)
+        uncertain_data.append({"Domain": domain, "Uncertain Count": uncertain_count})
+
+    df_uncertain = pd.DataFrame(uncertain_data)
+    sns.barplot(
+        data=df_uncertain,
+        x="Domain",
+        y="Uncertain Count",
+        ax=ax2,
+        color=sns.color_palette()[2],
+    )
+    ax2.set_title("Uncertain Predictions by Domain")
+    ax2.set_ylabel("Number of Uncertain Predictions")
+    ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45, ha="right")
+
+    for container in ax2.containers:
+        ax2.bar_label(container, padding=3)
+
+    # Prediction-wise accuracies (right side)
     pred_data = []
     categories = []
     for domain, stats in prediction_summary["by_domain"].items():
@@ -77,19 +112,16 @@ def plot_accuracy_metrics(
 
     df_pred = pd.DataFrame(pred_data)
     sns.barplot(
-        data=df_pred, x="Category", y="Accuracy", ax=ax2, color=sns.color_palette()[0]
+        data=df_pred, x="Category", y="Accuracy", ax=ax3, color=sns.color_palette()[0]
     )
-    ax2.set_title("Prediction-wise Accuracies")
-    ax2.set_ylabel("Accuracy (%)")
+    ax3.set_title("Prediction-wise Accuracies")
+    ax3.set_ylabel("Accuracy (%)")
+    ax3.set_xticklabels(ax3.get_xticklabels(), rotation=45, ha="right")
 
-    # Fix x-axis labels
-    ax2.set_xticks(range(len(categories)))
-    ax2.set_xticklabels(categories, rotation=45, ha="right")
+    for container in ax3.containers:
+        ax3.bar_label(container, fmt="%.1f%%", padding=3)
 
-    # Add value labels
-    for container in ax2.containers:
-        ax2.bar_label(container, fmt="%.1f%%", padding=3)
-
+    # Adjust layout
     plt.tight_layout()
 
     if save_path:

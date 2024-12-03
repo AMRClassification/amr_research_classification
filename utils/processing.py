@@ -62,20 +62,47 @@ def compute_excel_accuracies(
     # Process the data
     ground_truths, predictions, skipped_entries = process_excel_data(df)
 
-    print(f"Processing {len(df)} entries...")
-    if skipped_entries > 0:
-        print(f"\nSkipped {skipped_entries} entries due to missing or invalid data")
+    # Add tracking of uncertain predictions by domain
+    uncertain_by_domain = {"Sector": [], "Research Area": [], "Infectious Agent": []}
 
-    # Run all analyses with controlled verbosity
+    certain_ground_truths = []
+    certain_predictions = []
+
+    for gt, pred in zip(ground_truths, predictions):
+        has_uncertain = False
+        if pred:
+            pred_lines = pred.split("\n")
+            for line in pred_lines:
+                if "0000" in line and "Uncertain" in line:
+                    domain = line.split("/")[0].strip().split(" ", 1)[1]
+                    uncertain_by_domain[domain].append(line)
+                    has_uncertain = True
+
+        if not has_uncertain:
+            certain_ground_truths.append(gt)
+            certain_predictions.append(pred)
+
+    print(f"Processing {len(df)} entries...")
+    print(f"Found uncertain predictions:")
+    for domain, uncertains in uncertain_by_domain.items():
+        print(f"  {domain}: {len(uncertains)}")
+    if skipped_entries > 0:
+        print(f"Skipped {skipped_entries} entries due to missing or invalid data")
+
+    # Run analyses with only certain predictions
     domain_accuracies = compute_hierarchical_accuracy(
-        ground_truths=ground_truths,
-        predictions=predictions,
+        ground_truths=certain_ground_truths,
+        predictions=certain_predictions,
         verbose=print_options["level_wise"],
     )
 
+    # Add uncertain counts to domain_accuracies
+    for domain in domain_accuracies:
+        domain_accuracies[domain]["uncertain"] = len(uncertain_by_domain[domain])
+
     prediction_summary = prediction_accuracy(
-        ground_truths=ground_truths,
-        predictions=predictions,
+        ground_truths=certain_ground_truths,
+        predictions=certain_predictions,
         verbose=print_options["prediction_wise"],
     )
 
@@ -85,8 +112,8 @@ def compute_excel_accuracies(
 
     # Analyze misclassifications with output file
     misclassifications = analyze_misclassifications(
-        ground_truths=ground_truths,
-        predictions=predictions,
+        ground_truths=certain_ground_truths,
+        predictions=certain_predictions,
         verbose=print_options.get("misclassifications", False),
         output_file=misclass_output,
     )
@@ -99,8 +126,8 @@ def compute_excel_accuracies(
         os.makedirs(plot_save_path, exist_ok=True)
 
     constellation_patterns = analyze_error_constellations(
-        ground_truths=ground_truths,
-        predictions=predictions,
+        ground_truths=certain_ground_truths,
+        predictions=certain_predictions,
         save_plots=viz_options["save_plots"],
         verbose=print_options["constellations"],
     )

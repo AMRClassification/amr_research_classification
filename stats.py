@@ -5,7 +5,7 @@ from utils.processing import compute_excel_accuracies
 
 def main():
     # Define the path to your Excel file
-    file_name = "4o_Human_Therapeutics_1060_800_10"
+    file_name = "4o_Human_Therapeutics_1060_800_200"
     file_path = f"{file_name}.xlsx"
 
     # Define print options for different analysis views
@@ -19,7 +19,7 @@ def main():
     # Define visualization options
     viz_options = {
         "visualize_analysis": True,  # Show the analysis plots
-        "save_plots": False,  # Save plots to files
+        "save_plots": True,  # Save plots to files
         "plot_save_dir": "results/plots/",  # Directory for saving plots
     }
 

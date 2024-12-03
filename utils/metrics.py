@@ -12,29 +12,40 @@ def compute_hierarchical_accuracy_per_domain(
     level_matches = {level: 0 for level in range(1, max_level + 1)}
     level_totals = {level: 0 for level in range(1, max_level + 1)}
 
+    # Count total levels in ground truth categories
     for gt_category_levels in gt_domain_categories:
-        gt_levels = gt_category_levels[1:]
+        gt_levels = gt_category_levels[1:]  # Exclude domain name
         num_levels = len(gt_levels)
-        # Update level_totals
-        for i in range(1, num_levels + 1):
-            level_totals[i] += 1
+        for level in range(1, num_levels + 1):
+            level_totals[level] += 1
 
-        # Find the best matching prediction category
-        best_match_level = 0
-        for pred_category_levels in pred_domain_categories:
-            pred_levels = pred_category_levels[1:]
-            max_possible_level = min(len(gt_levels), len(pred_levels))
-            current_match_level = 0
-            for level in range(max_possible_level):
-                if gt_levels[level] == pred_levels[level]:
-                    current_match_level += 1
-                else:
-                    break
-            if current_match_level > best_match_level:
-                best_match_level = current_match_level
-        # Update level_matches
-        for level in range(1, best_match_level + 1):
-            level_matches[level] += 1
+    # Keep track of matched predictions
+    matched_pred_indices = set()
+
+    # For each ground truth category, try to find an exact matching prediction
+    for gt_category_levels in gt_domain_categories:
+        gt_levels = gt_category_levels[1:]  # Exclude domain name
+        num_levels = len(gt_levels)
+        match_found = False
+
+        for pred_idx, pred_category_levels in enumerate(pred_domain_categories):
+            if pred_idx in matched_pred_indices:
+                continue  # Prediction already matched
+
+            pred_levels = pred_category_levels[1:]  # Exclude domain name
+
+            # Only consider exact matches (both levels and content)
+            if gt_levels == pred_levels:
+                match_found = True
+                matched_pred_indices.add(pred_idx)
+                # Update level matches
+                for level in range(1, num_levels + 1):
+                    level_matches[level] += 1
+                break  # Stop searching after finding a match
+
+        if not match_found:
+            # No match found for this ground truth category
+            pass  # level_matches remain unchanged
 
     return level_matches, level_totals
 

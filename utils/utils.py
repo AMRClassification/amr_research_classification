@@ -2,6 +2,7 @@ import pandas as pd
 import json
 import re
 import os
+from difflib import get_close_matches
 
 file_path = "assets/Dashboard Categories to be used.xlsx"
 docs_path = "assets/docs"
@@ -64,9 +65,64 @@ def get_additional_info(category):
         return f"No additional information found for {category}."
 
 
+def get_keywords(category):
+    filename = f"{category.lower().replace(' ', '_')}_keywords.txt"
+    file_path = os.path.join(docs_path, filename)
+    return file_path
+
+
 def extract_json(text):
     json_match = re.search(r"\{[\s\S]*\}", text)
     return json_match.group(0) if json_match else None
+
+
+def handle_invalid_entry(message, details=None):
+    """
+    Handle invalid entries by pausing execution and showing error details.
+
+    Args:
+        message (str): Main error message
+        details (any): Additional error details
+    """
+    print("\n" + "=" * 50)
+    print("INVALID ENTRY DETECTED!")
+    print("=" * 50)
+    print(f"Reason: {message}")
+
+    if details:
+        print("\nDetails:")
+        print(details)
+
+    print("\nPress Enter to continue or type 'exit' to stop...")
+    response = input()
+
+    if response.lower() == "exit":
+        raise SystemExit("Program terminated by user")
+
+
+def find_closest_category(invalid_category, domain, threshold=0.85):
+    """
+    Find the closest matching valid category using fuzzy matching.
+    """
+    valid_categories = get_categories(domain)
+    matches = get_close_matches(
+        invalid_category, valid_categories, n=1, cutoff=threshold
+    )
+
+    if matches:
+        closest_match = matches[0]
+        handle_invalid_entry(
+            f"Found close match for invalid category in {domain}",
+            f"Invalid: '{invalid_category}'\nSuggested: '{closest_match}'",
+        )
+        return closest_match
+
+    handle_invalid_entry(
+        f"No close match found for invalid category in {domain}",
+        f"Invalid category: '{invalid_category}'\nValid options:\n"
+        + "\n".join(valid_categories),
+    )
+    return None
 
 
 if __name__ == "__main__":

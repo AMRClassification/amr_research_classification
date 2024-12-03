@@ -15,72 +15,74 @@ def identify_misclassifications(ground_truth, prediction, domain):
     gt_categories = gt_domains.get(domain, [])
     pred_categories = pred_domains.get(domain, [])
 
-    # Check if any predictions match ground truth
-    any_correct = False
+    # If both gt and pred categories are empty, no misclassification
+    if not gt_categories and not pred_categories:
+        return misclassifications
+
+    # Copy for manipulation
+    gt_categories_copy = gt_categories.copy()
+    pred_categories_copy = pred_categories.copy()
+
+    # Find correct predictions
     correct_predictions = []
-    incorrect_predictions = []
-
     for pred_cat in pred_categories:
-        if pred_cat in gt_categories:
-            any_correct = True
+        if pred_cat in gt_categories_copy:
             correct_predictions.append(pred_cat)
-        else:
-            incorrect_predictions.append(pred_cat)
+            gt_categories_copy.remove(pred_cat)
 
-    # Case 1: No correct predictions at all
-    if not any_correct and pred_categories:
+    # Remaining predictions are incorrect
+    incorrect_predictions = [
+        pred_cat for pred_cat in pred_categories if pred_cat not in correct_predictions
+    ]
+
+    # Remaining gt categories are missing
+    missing_categories = gt_categories_copy
+
+    # Record misclassifications
+    if incorrect_predictions and not correct_predictions:
         misclassifications.append(
             {
                 "type": "incorrect",
-                "ground_truth": "\n".join(
-                    " / ".join(gt_cat) for gt_cat in gt_categories
-                )
-                if gt_categories
-                else "None",
-                "prediction": "\n".join(
-                    " / ".join(pred_cat) for pred_cat in pred_categories
-                ),
-                "details": "No correct predictions made",
-            }
-        )
-
-    # Case 2: Additional incorrect predictions
-    if incorrect_predictions and any_correct:
-        misclassifications.append(
-            {
-                "type": "additional",
                 "ground_truth": "\n".join(
                     " / ".join(gt_cat) for gt_cat in gt_categories
                 ),
                 "prediction": "\n".join(
                     " / ".join(pred_cat) for pred_cat in incorrect_predictions
                 ),
-                "correct_hits": "\n".join(
-                    " / ".join(pred_cat) for pred_cat in correct_predictions
-                ),
-                "details": f"Made {len(correct_predictions)} correct predictions but added {len(incorrect_predictions)} incorrect ones",
+                "details": "Incorrect predictions made with no correct predictions",
             }
         )
-
-    # Case 3: Missing ground truth categories
-    missing_categories = [
-        gt_cat for gt_cat in gt_categories if gt_cat not in correct_predictions
-    ]
-
-    if missing_categories and any_correct:
-        misclassifications.append(
-            {
-                "type": "missing",
-                "ground_truth": "\n".join(
-                    " / ".join(gt_cat) for gt_cat in missing_categories
-                ),
-                "prediction": "None",
-                "correct_hits": "\n".join(
-                    " / ".join(pred_cat) for pred_cat in correct_predictions
-                ),
-                "details": f"Made {len(correct_predictions)} correct predictions but missed {len(missing_categories)} categories",
-            }
-        )
+    else:
+        if missing_categories:
+            misclassifications.append(
+                {
+                    "type": "missing",
+                    "ground_truth": "\n".join(
+                        " / ".join(gt_cat) for gt_cat in missing_categories
+                    ),
+                    "prediction": "None",
+                    "correct_hits": "\n".join(
+                        " / ".join(pred_cat) for pred_cat in correct_predictions
+                    ),
+                    "details": f"Missed {len(missing_categories)} categories",
+                }
+            )
+        if incorrect_predictions:
+            misclassifications.append(
+                {
+                    "type": "additional",
+                    "ground_truth": "\n".join(
+                        " / ".join(gt_cat) for gt_cat in gt_categories
+                    ),
+                    "prediction": "\n".join(
+                        " / ".join(pred_cat) for pred_cat in incorrect_predictions
+                    ),
+                    "correct_hits": "\n".join(
+                        " / ".join(pred_cat) for pred_cat in correct_predictions
+                    ),
+                    "details": f"Added {len(incorrect_predictions)} incorrect categories",
+                }
+            )
 
     return misclassifications
 
@@ -119,13 +121,36 @@ def prediction_accuracy(ground_truths, predictions, verbose=True):
                 if pred_cat not in gt_categories
             ]
 
+            # Count missing predictions
+            missing_predictions = [
+                gt_cat for gt_cat in gt_categories if gt_cat not in pred_categories
+            ]
+
             # Update domain-specific counts
             summary["by_domain"][domain]["correct"] += len(correct_predictions)
-            summary["by_domain"][domain]["incorrect"] += len(incorrect_predictions)
 
-            # Update overall totals
+            # If there are both missing and incorrect predictions for the same category,
+            # count it as a single error rather than two
+            if incorrect_predictions and missing_predictions:
+                # Count as one error per pair of missing/incorrect
+                num_errors = max(len(incorrect_predictions), len(missing_predictions))
+                summary["by_domain"][domain]["incorrect"] += num_errors
+            else:
+                # Count individual errors when only one type exists
+                summary["by_domain"][domain]["incorrect"] += len(
+                    incorrect_predictions
+                ) + len(missing_predictions)
+
+            # Update overall totals the same way
             summary["overall"]["correct"] += len(correct_predictions)
-            summary["overall"]["incorrect"] += len(incorrect_predictions)
+            if incorrect_predictions and missing_predictions:
+                summary["overall"]["incorrect"] += max(
+                    len(incorrect_predictions), len(missing_predictions)
+                )
+            else:
+                summary["overall"]["incorrect"] += len(incorrect_predictions) + len(
+                    missing_predictions
+                )
 
     if verbose:
         # Print domain summaries

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import List, Union
 from utils.pydantic.sector import SectorClassificationResult
-from utils.pydantic.research_area import ResearchAreaClassificationResult
+from utils.research_area import ResearchAreaClassificationResult
 from utils.pydantic.infectious_agent import InfectiousAgentClassificationResult
 from utils.utils import get_categories, extract_json
 

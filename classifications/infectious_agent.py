@@ -40,12 +40,14 @@ def validate_infectious_agent_classification(title, abstract, prediction):
 
                 if suggested_class not in valid_categories:
                     # Try to find a close match
-                    closest_match = find_closest_category(
-                        suggested_class, "Infectious Agent"
-                    )
+                    closest_match = find_closest_category(suggested_class, "Infectious Agent")
                     if closest_match:
+                        print(
+                            f"Correcting suggested classification from '{suggested_class}' to '{closest_match}'"
+                        )
                         validation["correct_classification"] = closest_match
                     else:
+                        print(f"Invalid suggested classification: {suggested_class}")
                         tries += 1
                         continue
 
@@ -62,10 +64,7 @@ def validate_infectious_agent_classification(title, abstract, prediction):
             return validation_response
 
         except Exception as e:
-            handle_invalid_entry(
-                "Error in infectious agent validation",
-                f"Error: {str(e)}\nPrediction: {prediction}",
-            )
+            print(f"Error in infectious agent validation: {str(e)}")
             tries += 1
             if tries == max_tries:
                 print("Max retries reached. Returning None.")
@@ -87,7 +86,7 @@ def classify_infectious_agent(title, abstract, model="gpt-4o-mini"):
                 or "infectious_agents" not in result
                 or not isinstance(result["infectious_agents"], list)
             ):
-                print(f"Invalid result format received: {result}")
+                handle_invalid_entry("Invalid result format", f"Received: {result}")
                 tries += 1
                 continue
 
@@ -95,9 +94,24 @@ def classify_infectious_agent(title, abstract, model="gpt-4o-mini"):
             parsed_result = {"infectious_agent": [], "explanation": ""}
 
             agents = result["infectious_agents"]
-            parsed_result["infectious_agent"] = [
-                item["infectious_agent"] for item in agents
-            ]
+
+            # Validate each agent against valid categories
+            valid_categories = get_categories("Infectious Agent")
+            corrected_agents = []
+
+            for item in agents:
+                agent = item["infectious_agent"]
+                if agent not in valid_categories:
+                    closest_match = find_closest_category(agent, "Infectious Agent")
+                    if closest_match:
+                        corrected_agents.append(closest_match)
+                    else:
+                        tries += 1
+                        continue
+                else:
+                    corrected_agents.append(agent)
+
+            parsed_result["infectious_agent"] = corrected_agents
             parsed_result["explanation"] = "\n\n".join(
                 [
                     f"Classification: {item['infectious_agent']}\n"
@@ -107,19 +121,7 @@ def classify_infectious_agent(title, abstract, model="gpt-4o-mini"):
                 ]
             )
 
-            # Validate agents
-            agent_categories = get_categories("Infectious Agent")
-            invalid_agents = [
-                agent
-                for agent in parsed_result["infectious_agent"]
-                if agent not in agent_categories
-            ]
-            if invalid_agents:
-                print(f"Invalid infectious agents found: {invalid_agents}")
-                tries += 1
-                continue
-
-            # After parsing the result, add validation
+            # Validate infectious agents
             validation_result = validate_infectious_agent_classification(
                 title, abstract, str(result)
             )
@@ -143,7 +145,7 @@ def classify_infectious_agent(title, abstract, model="gpt-4o-mini"):
                             + validation_result["explanation"]
                         )
                 else:
-                    print("Infectious Agent Classification Validated Successfully!")
+                    print("\nInfectious Agent Classification Validated Successfully!")
                     parsed_result["explanation"] = (
                         parsed_result["explanation"]
                         + "\n\nValidation Result:\n"
@@ -152,15 +154,10 @@ def classify_infectious_agent(title, abstract, model="gpt-4o-mini"):
 
             return parsed_result
 
-        except (KeyError, TypeError) as e:
-            print(f"Error parsing result: {str(e)}")
-            print(f"Received result: {result}")
-            tries += 1
-            if tries == max_tries:
-                print("Max retries reached. Returning None.")
-                return None
         except Exception as e:
-            print(f"Unexpected error: {str(e)}")
+            handle_invalid_entry(
+                "Unexpected error in classification", f"Error: {str(e)}"
+            )
             tries += 1
             if tries == max_tries:
                 print("Max retries reached. Returning None.")

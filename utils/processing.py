@@ -110,10 +110,13 @@ def compute_excel_accuracies(
     filename = os.path.splitext(os.path.basename(file_path))[0]
     misclass_output = os.path.join(os.path.dirname(file_path), "misclassifications.txt")
 
-    # Analyze misclassifications with output file
+    # Analyze misclassifications with output file and ID column
     misclassifications = analyze_misclassifications(
         ground_truths=certain_ground_truths,
         predictions=certain_predictions,
+        id_column=df["Id"].iloc[
+            len(df) - len(certain_ground_truths) :
+        ],  # Get IDs for non-uncertain entries
         verbose=print_options.get("misclassifications", False),
         output_file=misclass_output,
     )

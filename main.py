@@ -35,6 +35,7 @@ def perform_classification(
 
     # Initialize empty results DataFrame with columns
     columns = [
+        "Index",
         "Id",
         "Title",
         "Abstract",
@@ -136,6 +137,7 @@ def perform_classification(
             # Only add to results_df if classification was successful
             if sector_results and research_area_results and infectious_agent_results:
                 new_row = {
+                    "Index": current_index,
                     "Id": original_id,
                     "Title": title,
                     "Abstract": abstract,

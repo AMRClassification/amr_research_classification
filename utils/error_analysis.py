@@ -249,7 +249,7 @@ def analyze_error_constellations(
 
 
 def analyze_misclassifications(
-    ground_truths, predictions, domains=None, verbose=False, output_file=None
+    ground_truths, predictions, id_column, domains=None, verbose=False, output_file=None
 ):
     """
     Analyzes misclassifications across all entries and optionally writes indices to a file.
@@ -257,6 +257,7 @@ def analyze_misclassifications(
     Args:
         ground_truths (list): List of ground truth strings
         predictions (list): List of prediction strings
+        id_column (list): List of IDs corresponding to each entry
         domains (list): List of domains to analyze
         verbose (bool): Whether to print the analysis results
         output_file (str): Path to output file for writing misclassification indices
@@ -265,14 +266,15 @@ def analyze_misclassifications(
         domains = ["Sector", "Research Area", "Infectious Agent"]
 
     misclassifications = {domain: [] for domain in domains}
-
-    # Dictionary to store indices by domain and error type
     error_indices = {
         domain: {"incorrect": [], "additional": [], "missing": []} for domain in domains
     }
 
     # Collect misclassifications
-    for index, (ground_truth, prediction) in enumerate(zip(ground_truths, predictions)):
+    for index, (ground_truth, prediction, entry_id) in enumerate(
+        zip(ground_truths, predictions, id_column)
+    ):
+        print(f"Processing entry {index} with ID {entry_id}")
         for domain in domains:
             domain_misclassifications = identify_misclassifications(
                 ground_truth, prediction, domain
@@ -280,13 +282,13 @@ def analyze_misclassifications(
             if domain_misclassifications:
                 misclassifications[domain].append(
                     {
-                        "index": index,
+                        "index": entry_id,  # Use the ID instead of iteration index
                         "errors": domain_misclassifications,
                     }
                 )
-                # Store indices by error type
+                # Store IDs by error type
                 for error in domain_misclassifications:
-                    error_indices[domain][error["type"]].append(index)
+                    error_indices[domain][error["type"]].append(entry_id)
 
     # Write indices to file if output_file is specified
     if output_file:
@@ -303,9 +305,7 @@ def analyze_misclassifications(
                     if indices:
                         f.write(f"\n{error_type.upper()} PREDICTIONS:\n")
                         f.write(f"Count: {len(indices)}\n")
-                        f.write(
-                            f"Indices: {', '.join(map(str, sorted([i+2 for i in indices])))}\n"
-                        )
+                        f.write(f"Indices: {', '.join(map(str, sorted(indices)))}\n")
                 f.write("\n")
 
     if verbose:

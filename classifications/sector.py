@@ -93,7 +93,22 @@ def classify_sector(title, abstract, model="gpt-4o-mini"):
             parsed_result = {"sector": [], "explanation": ""}
 
             sectors = result["sectors"]
-            parsed_result["sector"] = [item["sector"] for item in sectors]
+            valid_categories = get_categories("Sector")
+            corrected_sectors = []
+
+            for item in sectors:
+                sector = item["sector"]
+                if sector not in valid_categories:
+                    closest_match = find_closest_category(sector, "Sector")
+                    if closest_match:
+                        corrected_sectors.append(closest_match)
+                    else:
+                        tries += 1
+                        continue
+                else:
+                    corrected_sectors.append(sector)
+
+            parsed_result["sector"] = corrected_sectors
             parsed_result["explanation"] = "\n\n".join(
                 [
                     f"Classification: {item['sector']}\n"

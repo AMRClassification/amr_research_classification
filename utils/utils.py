@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import re
 import os
-from difflib import get_close_matches
+from difflib import get_close_matches, SequenceMatcher
 
 file_path = "assets/Dashboard Categories to be used.xlsx"
 docs_path = "assets/docs"
@@ -100,27 +100,26 @@ def handle_invalid_entry(message, details=None):
         raise SystemExit("Program terminated by user")
 
 
-def find_closest_category(invalid_category, domain, threshold=0.85):
+def find_closest_category(invalid_category, domain, threshold=0.92):
     """
     Find the closest matching valid category using fuzzy matching.
     """
     valid_categories = get_categories(domain)
     matches = get_close_matches(
-        invalid_category, valid_categories, n=1, cutoff=threshold
+        invalid_category, valid_categories, n=3, cutoff=threshold
     )
 
     if matches:
-        closest_match = matches[0]
-        handle_invalid_entry(
-            f"Found close match for invalid category in {domain}",
-            f"Invalid: '{invalid_category}'\nSuggested: '{closest_match}'",
+        print(
+            f"\nFound close matches for invalid category '{invalid_category}' in {domain}:"
         )
-        return closest_match
+        for i, match in enumerate(matches, 1):
+            similarity = SequenceMatcher(None, invalid_category, match).ratio()
+            print(f"{i}. '{match}' (similarity: {similarity:.2%})")
+        return matches[0]  # Return the closest match
 
-    handle_invalid_entry(
-        f"No close match found for invalid category in {domain}",
-        f"Invalid category: '{invalid_category}'\nValid options:\n"
-        + "\n".join(valid_categories),
+    print(
+        f"\nNo close match found for invalid category '{invalid_category}' in {domain}"
     )
     return None
 

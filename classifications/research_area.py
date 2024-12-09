@@ -100,15 +100,30 @@ def classify_research_area(title, abstract, model="gpt-4o-mini"):
             # Parse the result
             parsed_result = {"research_area": [], "explanation": ""}
             areas = result["research_areas"]
-            parsed_result["research_area"] = [item["research_area"] for item in areas]
+            valid_categories = get_categories("Research Area")
+            corrected_areas = []
+
+            for item in areas:
+                area = item["research_area"]
+                if area not in valid_categories:
+                    closest_match = find_closest_category(area, "Research Area")
+                    if closest_match:
+                        corrected_areas.append(closest_match)
+                    else:
+                        tries += 1
+                        continue
+                else:
+                    corrected_areas.append(area)
+
+            parsed_result["research_area"] = corrected_areas
 
             # Build initial explanation from classification results
             explanation_parts = []
-            for area in areas:
+            for area in corrected_areas:
                 explanation_parts.append(
-                    f"Research Area: {area['research_area']}\n"
-                    f"Evidence: {', '.join(area['relevant_input_snippet'])}\n"
-                    f"Explanation: {area['explanation']}\n"
+                    f"Research Area: {area}\n"
+                    f"Evidence: {', '.join(item['relevant_input_snippet'])}\n"
+                    f"Explanation: {item['explanation']}\n"
                 )
             parsed_result["explanation"] = "\n".join(explanation_parts)
 

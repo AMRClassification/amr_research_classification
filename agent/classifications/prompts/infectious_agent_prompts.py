@@ -80,11 +80,12 @@ def get_classification_prompt(title, abstract):
 
 def get_infectious_agent_validation_prompt(title, abstract, prediction):
     return f"""
-You are an AI specialized in validating the classification of research papers for infectious agents. Your task is to verify if the given classification is correct based on the paper's title and abstract.
+You are an AI specialized in validating the classification of research papers for infectious agents. Your task is to verify if the current given classification is correct for the paper's title and abstract.
 
 **Input:**
 - **Title:** {title}
 - **Abstract:** {abstract}
+
 - **Current Classification:** {prediction}
 
 **Validation Rules for Infectious Agents:**
@@ -95,15 +96,21 @@ You are an AI specialized in validating the classification of research papers fo
    - Verify that classified agents are the actual focus of the research, not just examples
 
 2. **Specificity Rules:**
-   a) For Bacteria:
-      - Verify correct classification of Gram status when specified
-      - Confirm use of "Not Specified_Bacteria" when Gram status is unclear
-      - Validate use of "Other Gram negative/positive" for unlisted specific bacteria
-   
-   b) For Unspecified Cases:
-      - Confirm use of "Not Specified_InfectiousAgent" when agent type is unclear
-      - Verify "Not Applicable" classification when no infectious agents are involved
-
+   a. For bacteria without specified type:
+      - If bacteria are mentioned without indicating Gram status, classify as:
+         - "1500 Infectious Agent / Bacteria / Bacteria / Not Specified_Bacteria"
+      - Similarly use corresponding "Not Specified" classifications for other unspecified categories
+   b. For specified Gram status:
+      - If Gram negative bacteria are mentioned but not specified, or if specific unlisted, classify as:
+         - "1503 Infectious Agent / Bacteria / Gram negative / Other Gram negative"
+      - Apply same rule for Gram positive/variable or other infectious agents (parasites, fungi, etc.) using appropriate "Other" category
+   c. For unspecified infectious agents:
+      - If research relates to infectious agents but the category is not mentioned, classify as:
+         - "1901 Infectious Agent / Not Specified / Not Specified_InfectiousAgent"
+   d. For non-infectious agent research:
+      - If research has no relation to infectious agents, classify as:
+         - "1902 Infectious Agent / Not Applicable / Not Applicable"
+         
 3. **Multiple Classifications:**
    - Validate that multiple classifications are only used when:
      * Multiple agents are explicitly studied as main topics
@@ -130,7 +137,7 @@ You are an AI specialized in validating the classification of research papers fo
 ```json
 {{
     "validation_result": {{
-        "is_correct": true/false,
+        "is_correct": true/false -> indicating if the current classification is correct,
         "correct_classification": "str -> the correct classification if current is wrong, otherwise null",
         "evidence": ["List[str] -> relevant quotes from input"],
         "explanation": "str -> detailed explanation of the validation decision",

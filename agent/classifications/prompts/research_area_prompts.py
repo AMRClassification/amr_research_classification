@@ -6,88 +6,16 @@ research_area_additional_info = get_additional_info("Research Area")
 research_area_keywords = get_keywords("Research Area")
 
 
-def get_preselection_prompt(title, abstract):
-    """Prompt for the initial preselection of potential research areas."""
-    prompt = f"""
-You are an AI specialized in identifying potential research areas for papers on antimicrobial resistance. Your task is to analyze the title and abstract and identify which research areas could potentially apply based on the general descriptions below.
-
-**Available Research Areas:**
-{research_area_options}
-
-**Research Area Descriptions:**
-{research_area_additional_info}
-
-**Instructions:**
-1. Read the title and abstract carefully
-2. Compare the content with the research area descriptions
-3. Identify potential research areas from the available options above that could apply based on the general descriptions
-4. For each potential area, provide reasoning based on the content matching the description
-5. Only suggest areas from the provided list of available research areas
-6. Use the exact spelling of the classes including the numbers and uppercase/lowercase letters
-
-**Input:**
-- **Title:** {title}
-- **Abstract:** {abstract}
-
-**Output Format:**
-```json
-{{
-    "potential_areas": [
-        {{
-            "research_area": "str -> exact complete name from available options",
-            "reasoning": "str -> explanation why this area could apply based on the description"
-        }}
-    ]
-}}
-```
-
-Note: This is an initial screening step in a multi-stage pipeline. Please be comprehensive and include all potentially relevant areas, even if you're not completely certain. Over-inclusion at this stage is preferable to missing potential matches, as subsequent steps will refine these candidates.
-"""
-    return prompt
-
-def get_relevant_info_prompt(title, abstract, potential_areas):
-    prompt = f"""
-Given a research paper's title and abstract, extract the relevant paragraphs from the additional information that match the potential research areas identified.
-
-Title: {title}
-Abstract: {abstract}
-
-Potential Research Areas identified:
-{potential_areas}
-
-Additional Information Available:
-{research_area_additional_info}
-
-Instructions:
-1. For each potential research area identified above, find the matching paragraphs from the additional information
-2. Return the complete, unmodified paragraphs that describe those research areas
-3. Only include paragraphs for the potential research areas identified
-4. Do not modify, summarize or rewrite the paragraphs - return them exactly as they appear in the additional information
-5. Make sure to include the relevant headings of the paragraphs
-6. If applicable for any of the potential areas include the Product Development Stages and the TLR definitions
-
-Output Format:```json
-{{
-    "relevant_info": "str -> The complete, unmodified paragraphs from the additional information that describe the potential research areas, separated by newlines"
-}}
-```
-"""
-    return prompt
-
-
-# ### 2. Relevant Additional Information:
-# {relevant_info if relevant_info else "No additional information provided"}
-
-def get_classification_prompt(title, abstract, potential_areas=None, relevant_info=None):
-    prompt = f"""
+def get_classification_prompt(title, abstract):
+    return f"""
 You are an AI specialized in classifying research papers on antimicrobial resistance into relevant research areas based on their title and abstract. Follow the instructions and specifications below to determine the appropriate research area(s).
 
-**Instructions:**       
+**Instructions:**
 
 ### 1. Classification Choices:
-{potential_areas if potential_areas else "No potential areas provided"}
+{research_area_options}
 
-### 3. Classification Rules:
+### 2. Classification Rules:
 
 #### a. Direct Mention:
 - **Primary Goal:** Focus on identifying the major goal or objective of the research.
@@ -111,42 +39,49 @@ You are an AI specialized in classifying research papers on antimicrobial resist
 - **Therapeutics Discovery:** Focuses on the detection and validation of therapeutic products.
 - **Capacity Building:** Specifically refers to efforts aimed at refurbishing or increasing laboratory infrastructure and capabilities.
 
-#### 4. Keywords:
+#### 3. Keywords:
 Focus on the following keywords to determine the research area.
 {research_area_keywords}
 
 Only assign classes for which these according keywords or variants are mentioned to be actively performed within the current research.
-Use the keywords to think about what stage of research they are currently in.
+Use the keywords to determine what stage of research they are currently in.
 
-### 5. Output Format:
+### 4. Output Format:
 The output should be a JSON object with the following structure:
 ```json
 {{
     "research_areas": [
         {{
-            "research_area": "str -> 1 research area",
-            "relevant_input_snippet": ["List[str] -> the actual quote(s) from the input text where it takes the information from"],
+            "research_area": "str -> 1 research area; make sure you return the exact glassification strings as in the classification choices",
+            "relevant_input_snippet": [
+                {{
+                    "text_snippet": "str -> the actual quote(s) from the input text where it takes the information from",
+                    "corresponding_keyword": "str -> the keyword from the Kewords section that this connects to",
+                    "keyword_paragraph": "str -> the paragraph in the Keywords section, where the keyword is drawn in the following format: [Vaccines / Development]"
+                }}
+            ],
             "explanation": "str -> Explanation how this explains the addition of this research area to the classification",
         }}
     ]
 }}
 ```
 
+
 Now here is the research that needs to be classified:
 
 - **Title:** {title}
 - **Abstract:** {abstract}
 """
-    return prompt   
 
 
 def get_therapeutics_validation_prompt(title, abstract, prediction):
     prompt = f"""
-You are an AI specialized in validating the classification of research papers in the Therapeutics area. Your task is to verify if the given classification is correct based on the paper's title and abstract.
+You are an AI specialized in validating the classification of research papers in the Therapeutics area. Your task is to verify if the current given classification is correct for the paper's title and abstract.
 
 **Input:**
 - **Title:** {title}
 - **Abstract:** {abstract}
+
 - **Current Classification:** {prediction}
 
 **Validation Rules for Therapeutics:**
@@ -194,7 +129,7 @@ Here are some more general guidelines:
 ```json
 {{
     "validation_result": {{
-        "is_correct": true/false,
+        "is_correct": true/false -> indicating if the current classification is correct,
         "correct_classification": "str -> the correct classification if current is wrong, otherwise null",
         "evidence": ["List[str] -> relevant quotes from input"],
         "explanation": "str -> detailed explanation of the validation decision",
@@ -202,7 +137,7 @@ Here are some more general guidelines:
 }}
 ```
 """
-    return prompt   
+    return prompt
 
 
 # 2. **Phase-Specific Classifications:**

@@ -26,7 +26,7 @@ def main():
     start_index = 803
     num_entries = 20
     num_runs = 2
-    threshold = 0.9
+    threshold = 0.8
 
     # # Model selection
     # model_choices = {
@@ -51,14 +51,27 @@ def main():
     print(f"Using model: {model}")
     print("=" * 50)
 
+    # Set output file name
+    model_abbreviation = {
+        "o1-mini": "o1",
+        "gpt-4o-mini": "4o",
+        "gemini-1.5-flash": "flash",
+        "gemini-1.5-pro": "pro",
+    }.get(model, "4o")
+
+    output_file = f"{model_abbreviation}_{file_name}_{start_index}_{num_entries}.xlsx"
+
     # Initialize agent with all parameters
-    agent = Agent(model=model, num_runs=num_runs, threshold=threshold)
+    agent = Agent(
+        model=model, 
+        num_runs=num_runs, 
+        threshold=threshold,
+        output_file=output_file
+    )
 
     # Process entries
     try:
-        for current_index in range(
-            start_index, min(start_index + num_entries, len(df))
-        ):
+        for current_index in range(start_index, min(start_index + num_entries, len(df))):
             print(f"\nProcessing entry {current_index} of {len(df)}")
 
             # Get the row data
@@ -73,45 +86,27 @@ def main():
                 ground_truth=str(row["Categories"]),
             )
 
-        results_df = agent.get_results()
+            print("=" * 50)
 
-        # Set output file name after classification
-        model_abbreviation = {
-            "o1-mini": "o1",
-            "gpt-4o-mini": "4o",
-            "gemini-1.5-flash": "flash",
-            "gemini-1.5-pro": "pro",
-        }.get(model, "4o")
-
-        output_file = (
-            f"{model_abbreviation}_{file_name}_{start_index}_{num_entries}.xlsx"
+        print("\nComputing accuracies from results file...")
+        compute_excel_accuracies(
+            file_path=output_file,
+            print_options={
+                "level_wise": True,
+                "prediction_wise": True,
+                "misclassifications": True,
+                "constellations": True,
+            },
+            viz_options={
+                "visualize_analysis": True,
+                "save_plots": False,
+                "plot_save_dir": "results/plots/",
+            },
         )
-
-        # Save final results
-        if not results_df.empty:
-            results_df.to_excel(output_file, index=False)
-            print(f"\nFinal results saved to: {output_file}")
-
-            print("\nComputing accuracies from results file...")
-            compute_excel_accuracies(
-                file_path=output_file,
-                print_options={
-                    "level_wise": True,
-                    "prediction_wise": True,
-                    "misclassifications": True,
-                    "constellations": True,
-                },
-                viz_options={
-                    "visualize_analysis": True,
-                    "save_plots": False,
-                    "plot_save_dir": "results/plots/",
-                },
-            )
 
     except Exception as e:
         print(f"Error in classification process: {e}")
         raise
-
 
 if __name__ == "__main__":
     main()

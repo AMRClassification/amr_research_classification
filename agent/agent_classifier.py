@@ -68,10 +68,9 @@ class ClassificationState(TypedDict):
     """Combined state for the classification workflow."""
     input: InputState
     index: int
-    sector_result: Optional[SectorClassification]
-    potential_research_areas: Optional[List[Dict[str, str]]]
-    research_area_result: Annotated[ResearchAreaClassification, replace_reducer]
-    infectious_agent_result: Annotated[InfectiousAgentClassification, replace_reducer]
+    sector_result: SectorClassification
+    research_area_result: ResearchAreaClassification
+    infectious_agent_result: InfectiousAgentClassification
     classifications: List[Dict]
     results_df: pd.DataFrame
     successful_entries: int
@@ -79,12 +78,13 @@ class ClassificationState(TypedDict):
 
 
 class Agent:
-    def __init__(self, model: str, num_runs: int = 5, threshold: float = 0.8):
+    def __init__(self, model: str, num_runs: int = 5, threshold: float = 0.8, output_file: str = None):
         """Initialize the agent with model and run parameters."""
         self.model = model
         self.num_runs = num_runs
         self.threshold = threshold
         self.classification_stats = Counter()
+        self.output_file = output_file
         
         # Initialize results DataFrame
         self.results_df = pd.DataFrame(
@@ -120,7 +120,6 @@ class Agent:
                 return {
                     "sector_result": {
                         "sector": result["sector"],
-                        "relevant_input_snippet": result.get("relevant_input_snippet", []),
                         "explanation": result["explanation"]
                     }
                 }
@@ -140,7 +139,7 @@ class Agent:
             validation = validate_sector_classification(
                 state["input"]["title"],
                 state["input"]["abstract"],
-                state["sector_result"]["sector"]
+                str(state["sector_result"]["sector"])
             )
 
             if validation:
@@ -150,47 +149,33 @@ class Agent:
                     classification_type="Sector"
                 )
                 print(validation_message)
-
                 if validation["is_correct"]:
                     return {
-                        "sector_result": state["sector_result"],
+                        "sector_result": {
+                            "sector": state["sector_result"]["sector"],
+                            "explanation": (
+                                state["sector_result"]["explanation"]
+                                + "\n\nValidation Result:\n"
+                                + validation["explanation"]
+                            )
+                        },
                         "current_step": "validate_sector"
                     }
                 else:
                     return {
                         "sector_result": {
                             "sector": validation["suggested_classification"],
-                            "relevant_input_snippet": validation.get("evidence", []),
-                            "explanation": validation["explanation"]
+                            "explanation": (
+                                state["sector_result"]["explanation"]
+                                + "\n\nValidation Result:\n"
+                                + validation["explanation"]
+                            )
                         },
                         "current_step": "validate_sector"
                     }
             return state
         except Exception as e:
             print(f"Error in sector validation: {e}")
-            return state
-        
-
-    def preselect_research_areas(self, state: ClassificationState) -> Dict[str, Any]:
-        """First step: Identify potential research areas."""
-        try:
-            from classifications.research_area import get_potential_research_areas
-            
-            result = get_potential_research_areas(
-                state["input"]["title"],
-                state["input"]["abstract"],
-                model=self.model
-            )
-            
-            if result:
-                return {
-                    "potential_research_areas": result,
-                    "next": ["classify_research_area"]
-                }
-            return state
-            
-        except Exception as e:
-            print(f"Error in research area preselection: {e}")
             return state
 
 
@@ -199,25 +184,16 @@ class Agent:
         try:
             from classifications.research_area import classify_research_area
             
-            # Get the potential areas from state
-            potential_areas = state.get("potential_research_areas", [])
-            
-            if not potential_areas:
-                print("No potential research areas available in state")
-                return state
-            
             result = classify_research_area(
                 state["input"]["title"],
                 state["input"]["abstract"],
                 model=self.model,
-                potential_areas=potential_areas
             )
             
             if result:
                 return {
                     "research_area_result": {
                         "research_area": result["research_area"],
-                        "relevant_input_snippet": result.get("relevant_input_snippet", []),
                         "explanation": result["explanation"]
                     },
                 }
@@ -250,7 +226,7 @@ class Agent:
                     state["input"]["abstract"],
                     str(result["research_area"])
                 )
-                
+
                 if validation:
                     validation_message = format_validation_result(
                         original_classification=result["research_area"],
@@ -258,15 +234,13 @@ class Agent:
                         classification_type="Research Area"
                     )
                     print(validation_message)
-
                     if not validation["is_correct"]:
                         if validation["suggested_classification"]:
                             return {
                                 "research_area_result": {
                                     "research_area": [validation["suggested_classification"]],
                                     "explanation": (
-                                        "Original Classification:\n"
-                                        + result["explanation"]
+                                        result["explanation"]
                                         + "\n\nValidation Result:\n"
                                         + validation["explanation"]
                                     )
@@ -321,7 +295,6 @@ class Agent:
                 return {
                     "infectious_agent_result": {
                         "infectious_agent": result["infectious_agent"],
-                        "relevant_input_snippet": result.get("relevant_input_snippet", []),
                         "explanation": result["explanation"]
                     }
                 }
@@ -341,7 +314,7 @@ class Agent:
             validation = validate_infectious_agent_classification(
                 state["input"]["title"],
                 state["input"]["abstract"],
-                state["infectious_agent_result"]["infectious_agent"]
+                str(state["infectious_agent_result"]["infectious_agent"])
             )
 
             if validation:
@@ -354,15 +327,25 @@ class Agent:
 
                 if validation["is_correct"]:
                     return {
-                        "infectious_agent_result": state["infectious_agent_result"],
+                        "infectious_agent_result": {
+                            "infectious_agent": state["infectious_agent_result"]["infectious_agent"],
+                            "explanation": (
+                                state["infectious_agent_result"]["explanation"]
+                                + "\n\nValidation Result:\n"
+                                + validation["explanation"]
+                            )
+                        },
                         "current_step": "validate_infectious_agent"
                     }
                 else:
                     return {
                         "infectious_agent_result": {
                             "infectious_agent": validation["suggested_classification"],
-                            "relevant_input_snippet": validation.get("evidence", []),
-                            "explanation": validation["explanation"]
+                            "explanation": (
+                                state["infectious_agent_result"]["explanation"]
+                                + "\n\nValidation Result:\n"
+                                + validation["explanation"]
+                            )
                         },
                         "current_step": "validate_infectious_agent"
                     }
@@ -425,16 +408,16 @@ class Agent:
 
         # Add nodes
         workflow.add_node("start_classifications", start_classifications)
+        
         workflow.add_node("classify_sector", self.classify_sector)
         workflow.add_node("validate_sector", self.validate_sector)
         
-        # Research area nodes
-        workflow.add_node("preselect_research_areas", self.preselect_research_areas)
         workflow.add_node("classify_research_area", self.classify_research_area)
         workflow.add_node("validate_research_area", self.validate_research_area)
         
         workflow.add_node("classify_infectious_agent", self.classify_infectious_agent)
         workflow.add_node("validate_infectious_agent", self.validate_infectious_agent)
+
         workflow.add_node("combined_validation", self.combined_validation)
         workflow.add_node("store_results", self.store_results)
 
@@ -447,8 +430,7 @@ class Agent:
         workflow.add_edge("validate_sector", "combined_validation")
 
         # Parallel research area path (modified)
-        workflow.add_edge("start_classifications", "preselect_research_areas")
-        workflow.add_edge("preselect_research_areas", "classify_research_area")
+        workflow.add_edge("start_classifications", "classify_research_area")
         workflow.add_edge("classify_research_area", "validate_research_area")
         workflow.add_edge("validate_research_area", "combined_validation")
 
@@ -506,6 +488,15 @@ class Agent:
                     percentage = (count / successful_runs) * 100
                     print(f"   {category}: {count} ({percentage:.2f}%)")
 
+    def save_results(self):
+        """Save current results to Excel file."""
+        if self.output_file and not self.results_df.empty:
+            try:
+                self.results_df.to_excel(self.output_file, index=False)
+                print(f"\nResults saved to: {self.output_file}")
+            except Exception as e:
+                print(f"Error saving results to file: {e}")
+
     def perform_classification(self, index: int, title: str, abstract: str, original_id: str, ground_truth: str) -> pd.DataFrame:
         """Run multiple classification attempts and aggregate results."""
         # Check minimum content length
@@ -559,6 +550,8 @@ class Agent:
                     infectious_agent_results.append(result)
                 
                 successful_runs += 1
+
+                print("-" * 50)
                 
             except Exception as e:
                 print(f"Error in run {run + 1}: {e}")
@@ -595,6 +588,9 @@ class Agent:
         # Update results DataFrame
         new_row = pd.DataFrame([new_data])
         self.results_df = pd.concat([self.results_df, new_row], ignore_index=True)
+
+        # Save results after each successful classification
+        self.save_results()
 
         # Print statistics for this entry
         self.print_classification_stats(successful_runs)

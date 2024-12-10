@@ -9,7 +9,23 @@ Sector Domain:
 Research Area Domain:
 ------------------------------
 
+INCORRECT PREDICTIONS:
+Count: 2
+Indices: 34126, 35083
+
 
 Infectious Agent Domain:
 ------------------------------
+
+INCORRECT PREDICTIONS:
+Count: 1
+Indices: 34839
+
+ADDITIONAL PREDICTIONS:
+Count: 1
+Indices: 35083
+
+MISSING PREDICTIONS:
+Count: 1
+Indices: 35083
 

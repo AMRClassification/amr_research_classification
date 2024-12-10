@@ -1,5 +1,5 @@
 from utils.utils import get_categories, find_closest_category, handle_invalid_entry
-from utils.llm_call import classify_research_json
+from utils.llm_call import call_llm
 from .prompts.sector_prompts import (
     get_classification_prompt,
     get_sector_validation_prompt,
@@ -12,7 +12,7 @@ def classify_sector(title, abstract, model="gpt-4o-mini"):
     while tries < max_tries:
         try:
             prompt = get_classification_prompt(title=title, abstract=abstract)
-            result = classify_research_json(prompt, model)
+            result = call_llm(prompt, model)
 
             # Add validation for result
             if (
@@ -47,9 +47,9 @@ def classify_sector(title, abstract, model="gpt-4o-mini"):
             parsed_result["sector"] = corrected_sectors
             parsed_result["explanation"] = "\n\n".join(
                 [
-                    f"Classification: {item['sector']}\n"
-                    f"Evidence:\n- {'\n- '.join(item['relevant_input_snippet'])}\n"
-                    f"Explanation:\n{item['explanation']}\n"
+                    f"Sector: {item['sector']}\n\n"
+                    f"Evidence:\n- {'\n- '.join(item['relevant_input_snippet'])}\n\n"
+                    f"Explanation:\n{item['explanation']}"
                     for item in sectors
                 ]
             )
@@ -68,10 +68,14 @@ def validate_sector_classification(title, abstract, prediction):
     max_tries = 3
     tries = 0
 
+
     while tries < max_tries:
         try:
             prompt = get_sector_validation_prompt(title, abstract, prediction)
-            result = classify_research_json(prompt, "gpt-4o-mini")
+            result = call_llm(prompt, "gpt-4o-mini")
+
+            # print(f"Validation prompt: {prompt}")
+            # print(f"Validation result: {result}")
 
             if (
                 result is None
@@ -106,13 +110,16 @@ def validate_sector_classification(title, abstract, prediction):
                         tries += 1
                         continue
 
+
             validation_response = {
                 "is_correct": validation["is_correct"],
                 "suggested_classification": validation.get("correct_classification"),
                 "explanation": (
-                    f"Validation Result: {'CORRECT' if validation['is_correct'] else 'INCORRECT'}\n\n"
-                    f"Evidence:\n- {'\n- '.join(validation['evidence'])}\n\n"
-                    f"Explanation:\n{validation['explanation']}\n\n"
+                    "\n\n".join([
+                        f"Validation Result: {'CORRECT' if validation['is_correct'] else 'INCORRECT'}",
+                        f"Sector: {validation['correct_classification']}\n" if not validation['is_correct'] and validation.get('correct_classification') else "",
+                        f"Revision Explanation:{validation['explanation']}"
+                    ])
                 ),
             }
 

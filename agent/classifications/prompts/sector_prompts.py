@@ -75,11 +75,12 @@ def get_classification_prompt(
 
 def get_sector_validation_prompt(title, abstract, prediction):
     return f"""
-You are an AI specialized in validating the classification of research papers into sectors. Your task is to verify if the given classification is correct based on the paper's title and abstract.
+You are an AI specialized in validating the classification of research papers into sectors. Your task is to verify if the current given classification is correct for the paper's title and abstract.
 
 **Input:**
 - **Title:** {title}
 - **Abstract:** {abstract}
+
 - **Current Classification:** {prediction}
 
 **Validation Rules:**
@@ -104,7 +105,7 @@ You are an AI specialized in validating the classification of research papers in
 ```json
 {{
     "validation_result": {{
-        "is_correct": true/false,
+        "is_correct": true/false -> indicating if the current classification is correct,
         "correct_classification": "str -> the correct classification if current is wrong, otherwise null",
         "evidence": ["List[str] -> relevant quotes from input"],
         "explanation": "str -> detailed explanation of the validation decision",

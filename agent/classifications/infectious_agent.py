@@ -6,7 +6,7 @@ from utils.utils import (
     find_closest_category,
     handle_invalid_entry,
 )
-from utils.llm_call import classify_research_json
+from utils.llm_call import call_llm
 from .prompts.infectious_agent_prompts import (
     get_classification_prompt,
     get_infectious_agent_validation_prompt,
@@ -20,7 +20,7 @@ def classify_infectious_agent(title, abstract, model="gpt-4o-mini"):
     while tries < max_tries:
         try:
             prompt = get_classification_prompt(title=title, abstract=abstract)
-            result = classify_research_json(prompt, model)
+            result = call_llm(prompt, model)
 
             # Add validation for result
             if (
@@ -57,9 +57,9 @@ def classify_infectious_agent(title, abstract, model="gpt-4o-mini"):
             parsed_result["infectious_agent"] = corrected_agents
             parsed_result["explanation"] = "\n\n".join(
                 [
-                    f"Classification: {item['infectious_agent']}\n"
+                    f"Infectious Agent: {item['infectious_agent']}\n\n"
                     f"Evidence:\n- {'\n- '.join(item['relevant_input_snippet'])}\n"
-                    f"Explanation:\n{item['explanation']}\n"
+                    f"Explanation:\n{item['explanation']}\n\n"
                     for item in agents
                 ]
             )
@@ -83,7 +83,7 @@ def validate_infectious_agent_classification(title, abstract, prediction):
     while tries < max_tries:
         try:
             prompt = get_infectious_agent_validation_prompt(title, abstract, prediction)
-            result = classify_research_json(prompt, "gpt-4o-mini")
+            result = call_llm(prompt, "gpt-4o-mini")
 
             if (
                 result is None
@@ -117,14 +117,15 @@ def validate_infectious_agent_classification(title, abstract, prediction):
                         print(f"Invalid suggested classification: {suggested_class}")
                         tries += 1
                         continue
-
             validation_response = {
                 "is_correct": validation["is_correct"],
                 "suggested_classification": validation.get("correct_classification"),
                 "explanation": (
-                    f"Validation Result: {'CORRECT' if validation['is_correct'] else 'INCORRECT'}\n\n"
-                    f"Evidence:\n- {'\n- '.join(validation['evidence'])}\n\n"
-                    f"Explanation:\n{validation['explanation']}\n\n"
+                    "\n\n".join([
+                        f"Validation Result: {'CORRECT' if validation['is_correct'] else 'INCORRECT'}",
+                        f"Infectious Agent: {validation['correct_classification']}\n" if not validation['is_correct'] and validation.get('correct_classification') else "",
+                        f"Revision Explanation:{validation['explanation']}"
+                    ])
                 ),
             }
 

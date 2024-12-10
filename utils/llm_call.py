@@ -31,21 +31,21 @@ def classify_research(
     InfectiousAgentClassificationResult,
 ]:
     # Step 1: Call LLM with prompt and JSON response format
-    json_result = classify_research_json(prompt, model)
+    json_result = call_llm(prompt, model)
 
     # Step 2: Validate and convert JSON to Pydantic format
     validated = validate_and_convert_json(json_result, classification_type)
     return validated
 
 
-def classify_research_json(prompt: str, model: str) -> dict:
+def call_llm(prompt: str, model: str) -> dict:
     try:
         if model.startswith("gemini"):
             return call_gemini(prompt)
         else:
             return call_openai(prompt, model)
     except Exception as e:
-        print(f"Error in classify_research_json: {str(e)}")
+        print(f"Error in call_llm: {str(e)}")
         return None
 
 

@@ -106,27 +106,48 @@ def handle_invalid_entry(message, details=None):
         raise SystemExit("Program terminated by user")
 
 
-def find_closest_category(invalid_category, domain, threshold=0.92):
-    """
-    Find the closest matching valid category using fuzzy matching.
-    """
+def find_closest_category(invalid_category: str, domain: str, model="gpt-4o-mini") -> str:
+    """Find the closest matching valid category using LLM."""
     valid_categories = get_categories(domain)
-    matches = get_close_matches(
-        invalid_category, valid_categories, n=3, cutoff=threshold
-    )
+    
+    prompt = f"""
+You are a classification expert. Given an invalid category and a list of valid categories, determine which valid category was likely meant by the invalid one.
 
-    if matches:
-        print(
-            f"\nFound close matches for invalid category '{invalid_category}' in {domain}:"
-        )
-        for i, match in enumerate(matches, 1):
-            similarity = SequenceMatcher(None, invalid_category, match).ratio()
-            print(f"{i}. '{match}' (similarity: {similarity:.2%})")
-        return matches[0]  # Return the closest match
+Invalid Category: "{invalid_category}"
 
-    print(
-        f"\nNo close match found for invalid category '{invalid_category}' in {domain}"
-    )
+Valid Categories:
+{valid_categories}
+
+Based on naming patterns, domain knowledge, and semantic similarity, identify which valid category from the list above was most likely intended.
+
+Output Format:
+```json
+{{
+    "closest_match": "str -> exact match from valid categories list or null if no clear match",
+    "explanation": "str -> brief explanation of the match"
+}}
+```
+"""
+
+    try:
+        from utils.llm_call import call_llm
+        result = call_llm(prompt, model)
+        
+        if result and isinstance(result, dict):
+            closest_match = result.get("closest_match")
+            
+            if closest_match in valid_categories :
+                print(f"\nFound match for invalid category '{invalid_category}':")
+                print(f"Explanation: {result.get('explanation', 'No explanation provided')}")
+                return closest_match
+            else:
+                print(f"\nNo confident match found for '{invalid_category}'")
+                return None
+                
+    except Exception as e:
+        print(f"Error in category matching: {e}")
+        return None
+
     return None
 
 
@@ -143,7 +164,7 @@ def format_validation_result(original_classification, validation_result, classif
     """
     is_correct = validation_result["is_correct"]
     suggested = validation_result.get("suggested_classification")
-    
+
     if is_correct:
         return f"[✓] {classification_type}: CORRECT ({', '.join(original_classification)})"
     else:

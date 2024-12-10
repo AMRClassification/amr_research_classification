@@ -9,6 +9,7 @@ from classifications.infectious_agent import classify_infectious_agent
 from classifications.research_area import classify_research_area
 from stats import compute_excel_accuracies
 
+from utils.utils import compute_average
 
 def construct_classification_string(data):
     return "\n".join(filter(None, data))
@@ -108,25 +109,7 @@ def perform_classification(
                     category_counter[f"Infectious Agent: {category}"] += 1
 
             # Compute average results
-            def compute_average(results, classification_type):
-                if not results:
-                    return [], ""
-                classifications = [r.get(classification_type, []) for r in results]
-                flat_classifications = [
-                    item for sublist in classifications for item in sublist
-                ]
-                classification_counts = Counter(flat_classifications)
-                most_common = []
-                for c, count in classification_counts.items():
-                    percentage = count / len(results)
-                    if percentage >= threshold:
-                        most_common.append(c)
-                if not most_common:
-                    most_common = [
-                        f"0000 {classification_type.replace('_', ' ').title()} / Uncertain ({', '.join([f'{c}: {count/len(results):.2%}' for c, count in classification_counts.items()])})"
-                    ]
-                explanation = results[0].get("explanation", "") if results else ""
-                return most_common, explanation
+
 
             sector_avg = compute_average(sector_results, "sector")
             research_area_avg = compute_average(research_area_results, "research_area")

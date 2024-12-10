@@ -3,6 +3,7 @@ import json
 import re
 import os
 from difflib import get_close_matches, SequenceMatcher
+from collections import Counter
 
 file_path = "assets/Dashboard Categories to be used.xlsx"
 docs_path = "assets/docs"
@@ -68,7 +69,12 @@ def get_additional_info(category):
 def get_keywords(category):
     filename = f"{category.lower().replace(' ', '_')}_keywords.txt"
     file_path = os.path.join(docs_path, filename)
-    return file_path
+    
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            return file.read().strip()
+    except FileNotFoundError:
+        return f"No keywords found for {category}."
 
 
 def extract_json(text):
@@ -123,6 +129,49 @@ def find_closest_category(invalid_category, domain, threshold=0.92):
     )
     return None
 
+
+def format_validation_result(original_classification, validation_result, classification_type):
+    """Format validation result with a concise one-line status message.
+    
+    Args:
+        original_classification (list): List of original classifications
+        validation_result (dict): Validation result containing is_correct and suggested_classification
+        classification_type (str): Type of classification (Sector, Research Area, or Infectious Agent)
+        
+    Returns:
+        str: Formatted validation message
+    """
+    is_correct = validation_result["is_correct"]
+    suggested = validation_result.get("suggested_classification")
+    
+    if is_correct:
+        return f"[✓] {classification_type}: CORRECT ({', '.join(original_classification)})"
+    else:
+        original = ', '.join(original_classification)
+        updated = suggested if suggested else 'No valid suggestion'
+        return f"[✗] {classification_type}: INCORRECT ({original} -> {updated})"
+
+
+def compute_average(results, classification_type, threshold=0.9):
+    if not results:
+        return [], ""
+    classifications = [r.get(classification_type, []) for r in results]
+    flat_classifications = [
+        item for sublist in classifications for item in sublist
+    ]
+    classification_counts = Counter(flat_classifications)
+    most_common = []
+    for c, count in classification_counts.items():
+        percentage = count / len(results)
+        if percentage >= threshold:
+            most_common.append(c)
+    if not most_common:
+        most_common = [
+            f"0000 {classification_type.replace('_', ' ').title()} / Uncertain ({', '.join([f'{c}: {count/len(results):.2%}' for c, count in classification_counts.items()])})"
+        ]
+    explanation = results[0].get("explanation", "") if results else ""
+    return most_common, explanation
+        
 
 if __name__ == "__main__":
     print(f"Sector Categories: (length: {len(get_categories('Sector'))})")

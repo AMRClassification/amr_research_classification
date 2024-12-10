@@ -23,10 +23,10 @@ def main():
         return
 
     # Parameters
-    start_index = 800
-    num_entries = 2
-    num_runs = 5
-    threshold = 0.8
+    start_index = 803
+    num_entries = 20
+    num_runs = 2
+    threshold = 0.9
 
     # # Model selection
     # model_choices = {

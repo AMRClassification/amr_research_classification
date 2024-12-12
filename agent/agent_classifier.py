@@ -3,78 +3,31 @@ import sys
 
 sys.path.insert(1, os.getcwd())
 
-from typing import TypedDict, Annotated, Any, List, Optional, Dict, Union
+from typing import Any, Dict
 from langgraph.graph import StateGraph, END, START
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os
 import pandas as pd
-from datetime import datetime
 from collections import Counter
-import operator
-from functools import partial
-from utils.utils import compute_average, format_validation_result
+from utils.utils import compute_average, print_validation_result, print_review_result
+
+from agent.classifications.prompts.sector_prompts import get_sector_validation_review_prompt
+from agent.classifications.prompts.research_area_prompts import get_research_area_validation_review_prompt
+from agent.classifications.prompts.infectious_agent_prompts import get_infectious_agent_validation_review_prompt
+from utils.llm_call import call_llm
+
+from agent.schema import ClassificationState
+from agent.classifications.infectious_agent import map_less_relevant_infectious_agents_to_stain
 
 
 # Load environment variables
 load_dotenv()
-MODEL = "gpt-4o-mini"
 
 
 def replace_reducer(existing_value, new_value):
     """Reducer that replaces the existing value with the new value."""
     return new_value
 
-
-class InputState(TypedDict):
-    title: str
-    abstract: str
-    original_id: str
-    ground_truth: str
-
-
-class SectorClassification(TypedDict):
-    """Result of sector classification."""
-    sector: str
-    explanation: str
-
-
-class ResearchAreaClassification(TypedDict):
-    """Result of research area classification."""
-    research_area: str
-    explanation: str
-
-
-class InfectiousAgentClassification(TypedDict):
-    """Result of infectious agent classification."""
-    infectious_agent: str
-    explanation: str
-
-
-class ClassificationResults(TypedDict):
-    type: str
-    classification: Dict
-
-
-class OutputState(TypedDict):
-    index: int
-    classification_time: float
-    prediction: str
-    explanations: dict
-
-
-class ClassificationState(TypedDict):
-    """Combined state for the classification workflow."""
-    input: InputState
-    index: int
-    sector_result: SectorClassification
-    research_area_result: ResearchAreaClassification
-    infectious_agent_result: InfectiousAgentClassification
-    classifications: List[Dict]
-    results_df: pd.DataFrame
-    successful_entries: int
-    next: List[str]
 
 
 class Agent:
@@ -111,10 +64,11 @@ class Agent:
             from classifications.sector import classify_sector
             
             result = classify_sector(
-                state["input"]["title"],
-                state["input"]["abstract"],
+                title=state["input"]["title"],
+                abstract=state["input"]["abstract"],
                 model=self.model
             )
+            
             
             if result:
                 return {
@@ -137,18 +91,19 @@ class Agent:
                 return state
 
             validation = validate_sector_classification(
-                state["input"]["title"],
-                state["input"]["abstract"],
-                str(state["sector_result"]["sector"])
+                title=state["input"]["title"],
+                abstract=state["input"]["abstract"],
+                prediction=str(state["sector_result"]["sector"]),
+                model=self.model
             )
 
             if validation:
-                validation_message = format_validation_result(
+                print_validation_result(
                     original_classification=state["sector_result"]["sector"],
                     validation_result=validation,
                     classification_type="Sector"
                 )
-                print(validation_message)
+
                 if validation["is_correct"]:
                     return {
                         "sector_result": {
@@ -178,6 +133,48 @@ class Agent:
             print(f"Error in sector validation: {e}")
             return state
 
+    def review_sector_validation(self, state: dict) -> dict:
+        """Reviews the sector validation explanation and determines next steps."""
+        prompt = get_sector_validation_review_prompt(
+            title=state["input"]["title"],
+            abstract=state["input"]["abstract"],
+            validation_result=state["sector_result"]["explanation"]
+        )
+        
+        result = call_llm(prompt, self.model)
+
+        if not result or "review_result" not in result:
+            print("Invalid review result format")
+            return {"sector_next": ["combined_validation"]}
+        
+        review = result["review_result"]
+        print_review_result(review, "Sector")
+
+        if review["status"] == "uncertain":
+            domain_name = "Sector"
+            uncertain_classification = f"0000 {domain_name} / Uncertain"
+            
+            return {
+                "sector_result": {
+                    "sector": [uncertain_classification],
+                    "explanation": (
+                        state["sector_result"]["explanation"] +
+                        f"\n\n{review['status'].upper()}\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}"
+                    )
+                },
+                "sector_next": ["combined_validation"]
+            }
+        else:
+            return {
+                "sector_result": {
+                    "sector": state["sector_result"]["sector"],
+                    "explanation": (
+                        state["sector_result"]["explanation"] +
+                        f"\n\n{review['status'].upper()}\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}"
+                    )
+                },
+                "sector_next": ["combined_validation"]
+            }
 
     def classify_research_area(self, state: ClassificationState) -> Dict[str, Any]:
         """Second step: Detailed classification based on preselected areas."""
@@ -185,8 +182,8 @@ class Agent:
             from classifications.research_area import classify_research_area
             
             result = classify_research_area(
-                state["input"]["title"],
-                state["input"]["abstract"],
+                title=state["input"]["title"],
+                abstract=state["input"]["abstract"],
                 model=self.model,
             )
             
@@ -222,18 +219,18 @@ class Agent:
                 from classifications.research_area import validate_therapeutics_classification
                 
                 validation = validate_therapeutics_classification(
-                    state["input"]["title"],
-                    state["input"]["abstract"],
-                    str(result["research_area"])
+                    title=state["input"]["title"],
+                    abstract=state["input"]["abstract"],
+                    prediction=str(result["research_area"]),
+                    model=self.model
                 )
 
                 if validation:
-                    validation_message = format_validation_result(
+                    print_validation_result(
                         original_classification=result["research_area"],
                         validation_result=validation,
                         classification_type="Research Area"
                     )
-                    print(validation_message)
                     if not validation["is_correct"]:
                         if validation["suggested_classification"]:
                             return {
@@ -261,8 +258,7 @@ class Agent:
                         }
             else:
                 # For non-therapeutics classifications, add explicit validation skip message
-                validation_message = "[✓] Research Area: VALIDATION SKIPPED (no therapeutics classification)"
-                print(validation_message)
+                print("[✓] Research Area: VALIDATION SKIPPED (no therapeutics classification)")
                 return {
                     "research_area_result": {
                         "research_area": result["research_area"],
@@ -280,14 +276,61 @@ class Agent:
             print(f"Error in research area validation: {e}")
             return state
 
+    def review_research_area_validation(self, state: dict) -> dict:
+        """Reviews the research area validation explanation and determines next steps."""
+        prompt = get_research_area_validation_review_prompt(
+            title=state["input"]["title"],
+            abstract=state["input"]["abstract"],
+            validation_result=state["research_area_result"]["explanation"]
+        )
+        
+        result = call_llm(prompt, self.model)
+
+        if not result or "review_result" not in result:
+            print("Invalid review result format")
+            return {"research_area_next": ["combined_validation"]}
+        
+        review = result["review_result"]
+        print_review_result(review, "Research Area")
+
+        if review["status"] == "uncertain":
+            domain_name = "Research Area"
+            uncertain_classification = f"0000 {domain_name} / Uncertain"
+            
+            print(f"\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}")
+
+            return {
+                "research_area_result": {
+                    "research_area": [uncertain_classification],
+                    "explanation": (
+                    state["research_area_result"]["explanation"] +
+                    f"\n\n{review['status'].upper()}\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}"
+                )
+            },
+                "research_area_next": ["combined_validation"]
+            }
+        else:
+            return {
+                "research_area_result": {
+                    "research_area": state["research_area_result"]["research_area"],
+                    "explanation": (
+                        state["research_area_result"]["explanation"] +
+                        f"\n\n{review['status'].upper()}\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}"
+                    )
+                },
+                "research_area_next": ["combined_validation"]
+            }
+
+
+
     def classify_infectious_agent(self, state: ClassificationState) -> Dict[str, Any]:
         """Classify the infectious agent."""
         try:
             from classifications.infectious_agent import classify_infectious_agent
             
             result = classify_infectious_agent(
-                state["input"]["title"],
-                state["input"]["abstract"],
+                title=state["input"]["title"],
+                abstract=state["input"]["abstract"],
                 model=self.model
             )
             
@@ -312,18 +355,18 @@ class Agent:
                 return state
 
             validation = validate_infectious_agent_classification(
-                state["input"]["title"],
-                state["input"]["abstract"],
-                str(state["infectious_agent_result"]["infectious_agent"])
+                title=state["input"]["title"],
+                abstract=state["input"]["abstract"],
+                prediction=str(state["infectious_agent_result"]["infectious_agent"]),
+                model=self.model
             )
 
             if validation:
-                validation_message = format_validation_result(
+                print_validation_result(
                     original_classification=state["infectious_agent_result"]["infectious_agent"],
                     validation_result=validation,
                     classification_type="Infectious Agent"
                 )
-                print(validation_message)
 
                 if validation["is_correct"]:
                     return {
@@ -354,94 +397,107 @@ class Agent:
             print(f"Error in infectious agent validation: {e}")
             return state
 
-    def store_results(self, state: ClassificationState) -> ClassificationState:
-        """Store classification results in DataFrame."""
-        try:
-            # Format prediction string - handle lists by joining them
-            sector = state.get("sector_result", {}).get("sector", [])
-            research_area = state.get("research_area_result", {}).get("research_area", [])
-            infectious_agent = state.get("infectious_agent_result", {}).get("infectious_agent", [])
+    def review_infectious_agent_validation(self, state: dict) -> dict:
+        """Reviews the infectious agent validation explanation and determines next steps."""
+        prompt = get_infectious_agent_validation_review_prompt(
+            state["input"]["title"],
+            state["input"]["abstract"],
+            state["infectious_agent_result"]["explanation"]
+        )
+        
+        result = call_llm(prompt, self.model)
 
-            # Convert lists to strings if necessary
-            sector_str = "\n".join(sector) if isinstance(sector, list) else str(sector)
-            research_area_str = "\n".join(research_area) if isinstance(research_area, list) else str(research_area)
-            infectious_agent_str = "\n".join(infectious_agent) if isinstance(infectious_agent, list) else str(infectious_agent)
+        if not result or "review_result" not in result:
+            print("Invalid review result format")
+            return {"infectious_agent_next": ["combined_validation"]}
+        
+        review = result["review_result"]
+        print_review_result(review, "Infectious Agent")
 
-            prediction = "\n".join(filter(None, [
-                sector_str,
-                research_area_str,
-                infectious_agent_str
-            ]))
+        if review["status"] == "uncertain":
+            domain_name = "Infectious Agent"
+            uncertain_classification = f"0000 {domain_name} / Uncertain"
+            
+            print(f"\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}")
 
-            # Create new row data
-            new_data = {
-                "Index": state["index"],
-                "Id": str(state["input"]["original_id"]),
-                "Title": str(state["input"]["title"]),
-                "Abstract": str(state["input"]["abstract"]),
-                "Ground Truth": str(state["input"]["ground_truth"]),
-                "Prediction": prediction,
-                "Sector Overall Explanation": state.get("sector_result", {}).get("explanation", ""),
-                "Research Area Overall Explanation": state.get("research_area_result", {}).get("explanation", ""),
-                "Infectious Agent Overall Explanation": state.get("infectious_agent_result", {}).get("explanation", "")
+            return {
+                "infectious_agent_result": {
+                    "infectious_agent": [uncertain_classification],
+                    "explanation": (
+                        state["infectious_agent_result"]["explanation"] +
+                        f"\n\n{review['status'].upper()}\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}"
+                    )
+                },
+                "infectious_agent_next": ["combined_validation"]
+            }
+        else:
+            # Map infectious agents to their broader categories
+            agent = state["infectious_agent_result"]["infectious_agent"]
+            mapped_agent = map_less_relevant_infectious_agents_to_stain(agent)
+
+            return {
+                "infectious_agent_result": {
+                    "infectious_agent": mapped_agent,
+                    "explanation": (
+                        state["infectious_agent_result"]["explanation"] +
+                        f"\n\n{review['status'].upper()}\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}"
+                    )
+                },
+                "infectious_agent_next": ["combined_validation"]
             }
 
-            new_row = pd.DataFrame([new_data])
-            updated_df = pd.concat([state["results_df"], new_row], ignore_index=True)
-            
-        except Exception as e:
-            print(f"Error storing results: {e}")
 
     def _setup_workflow(self):
         """Set up the classification workflow."""
         workflow = StateGraph(ClassificationState)
 
-        def start_classifications(state: ClassificationState) -> Dict[str, Any]:
-            """Entry point that initiates parallel classification tasks."""
-            return {
-                "next": [
-                    "classify_sector",
-                    "preselect_research_areas",
-                    "classify_infectious_agent"
-                ]
-            }
-
         # Add nodes
-        workflow.add_node("start_classifications", start_classifications)
-        
         workflow.add_node("classify_sector", self.classify_sector)
         workflow.add_node("validate_sector", self.validate_sector)
+        workflow.add_node("review_sector_validation", self.review_sector_validation)
         
         workflow.add_node("classify_research_area", self.classify_research_area)
         workflow.add_node("validate_research_area", self.validate_research_area)
+        workflow.add_node("review_research_area_validation", self.review_research_area_validation)
         
         workflow.add_node("classify_infectious_agent", self.classify_infectious_agent)
         workflow.add_node("validate_infectious_agent", self.validate_infectious_agent)
+        workflow.add_node("review_infectious_agent_validation", self.review_infectious_agent_validation)
 
         workflow.add_node("combined_validation", self.combined_validation)
-        workflow.add_node("store_results", self.store_results)
-
-        # Connect START to entry point
-        workflow.add_edge(START, "start_classifications")
 
         # Parallel sector classification path
-        workflow.add_edge("start_classifications", "classify_sector")
+        workflow.add_edge(START, "classify_sector")
         workflow.add_edge("classify_sector", "validate_sector")
-        workflow.add_edge("validate_sector", "combined_validation")
+        workflow.add_edge("validate_sector", "review_sector_validation")
+        workflow.add_conditional_edges(
+            "review_sector_validation",
+            lambda x: x["sector_next"],
+            ["classify_sector", "combined_validation"]
+        )
 
-        # Parallel research area path (modified)
-        workflow.add_edge("start_classifications", "classify_research_area")
+        # Parallel research area path
+        workflow.add_edge(START, "classify_research_area")
         workflow.add_edge("classify_research_area", "validate_research_area")
-        workflow.add_edge("validate_research_area", "combined_validation")
+        workflow.add_edge("validate_research_area", "review_research_area_validation")
+        workflow.add_conditional_edges(
+            "review_research_area_validation",
+            lambda x: x["research_area_next"],
+            ["classify_research_area", "combined_validation"]
+        )
 
         # Parallel infectious agent path
-        workflow.add_edge("start_classifications", "classify_infectious_agent")
+        workflow.add_edge(START, "classify_infectious_agent")
         workflow.add_edge("classify_infectious_agent", "validate_infectious_agent")
-        workflow.add_edge("validate_infectious_agent", "combined_validation")
+        workflow.add_edge("validate_infectious_agent", "review_infectious_agent_validation")
+        workflow.add_conditional_edges(
+            "review_infectious_agent_validation",
+            lambda x: x["infectious_agent_next"],
+            ["classify_infectious_agent", "combined_validation"]
+        )
 
         # Final steps
-        workflow.add_edge("combined_validation", "store_results")
-        workflow.add_edge("store_results", END)
+        workflow.add_edge("combined_validation", END)
 
         self.app = workflow.compile()
 
@@ -456,8 +512,6 @@ class Agent:
             "Research Area": {},
             "Infectious Agent": {}
         }
-        
-
         
         # Process and clean statistics
         for category, count in self.classification_stats.items():
@@ -513,6 +567,7 @@ class Agent:
         
         for run in range(self.num_runs):
             try:
+                # Create a fresh input state for each run
                 input_state = {
                     "title": str(title),
                     "abstract": str(abstract),
@@ -520,12 +575,21 @@ class Agent:
                     "ground_truth": str(ground_truth)
                 }
 
+                # Create a fresh initial state for each run
                 initial_state = {
                     "index": index,
                     "input": input_state,
                     "classifications": [],
                     "results_df": self.results_df,
-                    "successful_entries": len(self.results_df)
+                    "successful_entries": len(self.results_df),
+                    # Initialize empty results for each domain
+                    "sector_result": {},
+                    "research_area_result": {},
+                    "infectious_agent_result": {},
+                    # Initialize empty next states
+                    "sector_next": [],
+                    "research_area_next": [],
+                    "infectious_agent_next": []
                 }
 
                 final_state = self.app.invoke(initial_state)

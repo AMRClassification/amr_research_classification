@@ -44,15 +44,19 @@ def classify_research_area(title, abstract, model="gpt-4o-mini"):
 
             for item in areas:
                 area = item["research_area"]
-                if area not in valid_categories:
-                    closest_match = find_closest_category(area, "Research Area")
-                    if closest_match:
-                        corrected_areas.append(closest_match)
+                if isinstance(area, str):
+                    area = [area]
+                
+                for a in area:
+                    if a not in valid_categories:
+                        closest_matches = find_closest_category(a, "Research Area", model=model)
+                        if closest_matches:
+                            corrected_areas.extend(closest_matches)
+                        else:
+                            tries += 1
+                            continue
                     else:
-                        tries += 1
-                        continue
-                else:
-                    corrected_areas.append(area)
+                        corrected_areas.append(a)
 
             parsed_result["research_area"] = corrected_areas
 
@@ -81,14 +85,14 @@ def classify_research_area(title, abstract, model="gpt-4o-mini"):
 
 
 
-def validate_therapeutics_classification(title, abstract, prediction):
+def validate_therapeutics_classification(title, abstract, prediction, model="gpt-4o-mini"):
     max_tries = 3
     tries = 0
 
     while tries < max_tries:
         try:
             prompt = get_therapeutics_validation_prompt(title, abstract, prediction)
-            result = call_llm(prompt, "gpt-4o-mini")
+            result = call_llm(prompt, model)
 
             if (
                 result is None
@@ -113,7 +117,7 @@ def validate_therapeutics_classification(title, abstract, prediction):
                 if suggested_class not in valid_categories:
                     # Try to find a close match
                     closest_match = find_closest_category(
-                        suggested_class, "Research Area"
+                        suggested_class, "Research Area", model=model
                     )
                     if closest_match:
                         print(

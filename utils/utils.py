@@ -99,32 +99,50 @@ def handle_invalid_entry(message, details=None):
         print("\nDetails:")
         print(details)
 
-    print("\nPress Enter to continue or type 'exit' to stop...")
-    response = input()
+    # print("\nPress Enter to continue or type 'exit' to stop...")
+    # response = input()
 
-    if response.lower() == "exit":
-        raise SystemExit("Program terminated by user")
+    # if response.lower() == "exit":
+    #     raise SystemExit("Program terminated by user")
 
 
-def find_closest_category(invalid_category: str, domain: str, model="gpt-4o-mini") -> str:
-    """Find the closest matching valid category using LLM."""
+def find_closest_category(invalid_categories: str, domain: str, model="gpt-4o-mini") -> list:
+    """Find the closest matching valid categories using LLM.
+    
+    Args:
+        invalid_categories (str): String potentially containing multiple invalid categories
+        domain (str): The domain to check against ("Sector", "Research Area", or "Infectious Agent")
+        model (str): The LLM model to use
+        
+    Returns:
+        list: List of closest matching valid categories, or empty list if no matches found
+    """
     valid_categories = get_categories(domain)
     
+    # Split input string into potential multiple categories
+    categories_to_check = [cat.strip() for cat in invalid_categories.split(',')]
+    
     prompt = f"""
-You are a classification expert. Given an invalid category and a list of valid categories, determine which valid category was likely meant by the invalid one.
+You are a classification expert. Given a potentially invalid category or categories and a list of valid categories, determine which valid category or categories were likely meant by the invalid one(s).
 
-Invalid Category: "{invalid_category}"
+Invalid Categories:
+{categories_to_check}
 
 Valid Categories:
 {valid_categories}
 
-Based on naming patterns, domain knowledge, and semantic similarity, identify which valid category from the list above was most likely intended.
+Based on naming patterns, domain knowledge, and semantic similarity, identify which valid categories from the list above were most likely intended.
 
 Output Format:
 ```json
 {{
-    "closest_match": "str -> exact match from valid categories list or null if no clear match",
-    "explanation": "str -> brief explanation of the match"
+    "matches": [
+        {{
+            "invalid_category": "str -> original invalid category",
+            "closest_match": "str -> exact match from valid categories list or null if no clear match",
+            "explanation": "str -> brief explanation of the match"
+        }}
+    ]
 }}
 ```
 """
@@ -133,16 +151,19 @@ Output Format:
         from utils.llm_call import call_llm
         result = call_llm(prompt, model)
         
-        if result and isinstance(result, dict):
-            closest_match = result.get("closest_match")
+        if result and isinstance(result, dict) and "matches" in result:
+            closest_matches = []
             
-            if closest_match in valid_categories :
-                print(f"\nFound match for invalid category '{invalid_category}':")
-                print(f"Explanation: {result.get('explanation', 'No explanation provided')}")
-                return closest_match
-            else:
-                print(f"\nNo confident match found for '{invalid_category}'")
-                return None
+            for match in result["matches"]:
+                closest_match = match.get("closest_match")
+                if closest_match in valid_categories:
+                    print(f"\nFound match for invalid category '{match['invalid_category']}':")
+                    print(f"Explanation: {match.get('explanation', 'No explanation provided')}")
+                    closest_matches.append(closest_match)
+                else:
+                    print(f"\nNo confident match found for '{match['invalid_category']}'")
+            
+            return closest_matches if closest_matches else None
                 
     except Exception as e:
         print(f"Error in category matching: {e}")
@@ -151,48 +172,78 @@ Output Format:
     return None
 
 
-def format_validation_result(original_classification, validation_result, classification_type):
-    """Format validation result with a concise one-line status message.
-    
-    Args:
-        original_classification (list): List of original classifications
-        validation_result (dict): Validation result containing is_correct and suggested_classification
-        classification_type (str): Type of classification (Sector, Research Area, or Infectious Agent)
-        
-    Returns:
-        str: Formatted validation message
-    """
+def print_validation_result(original_classification, validation_result, classification_type):
+    """Format validation result with a concise one-line status message."""
     is_correct = validation_result["is_correct"]
     suggested = validation_result.get("suggested_classification")
 
+    # Ensure original_classification is a list
+    if isinstance(original_classification, str):
+        original_classification = [original_classification]
+    
+    # Ensure suggested is a list
+    if suggested and isinstance(suggested, str):
+        suggested = [suggested]
+
     if is_correct:
-        return f"[✓] {classification_type}: CORRECT ({', '.join(original_classification)})"
+        print(f"[✓] {classification_type}: CORRECT ({', '.join(original_classification)})")
     else:
         original = ', '.join(original_classification)
-        updated = suggested if suggested else 'No valid suggestion'
-        return f"[✗] {classification_type}: INCORRECT ({original} -> {updated})"
+        updated = ', '.join(suggested) if suggested else 'No valid suggestion'
+        print(f"[✗] {classification_type}: INCORRECT ({original} -> {updated})")
 
 
 def compute_average(results, classification_type, threshold=0.9):
     if not results:
         return [], ""
+    
+    # Get all classifications and their counts
     classifications = [r.get(classification_type, []) for r in results]
-    flat_classifications = [
-        item for sublist in classifications for item in sublist
-    ]
+    flat_classifications = [item for sublist in classifications for item in sublist]
     classification_counts = Counter(flat_classifications)
+    
+    # Get explanations
+    explanations = [r.get("explanation", "") for r in results if r.get("explanation")]
+    combined_explanation = "\n".join(explanations)
+    
+    # Check if any classification meets the threshold
+    total_runs = len(results)
     most_common = []
-    for c, count in classification_counts.items():
-        percentage = count / len(results)
+    uncertainty_info = []
+    
+    for classification, count in classification_counts.items():
+        percentage = count / total_runs
         if percentage >= threshold:
-            most_common.append(c)
+            most_common.append(classification)
+        uncertainty_info.append(f"{classification}: {percentage:.2%}")
+    
+    # If no classification meets threshold, mark as uncertain
     if not most_common:
-        most_common = [
-            f"0000 {classification_type.replace('_', ' ').title()} / Uncertain ({', '.join([f'{c}: {count/len(results):.2%}' for c, count in classification_counts.items()])})"
-        ]
-    explanation = results[0].get("explanation", "") if results else ""
-    return most_common, explanation
-        
+        domain = classification_type.replace("_", " ").title()
+        most_common = [f"0000 {domain} / Uncertain ({', '.join(uncertainty_info)})"]
+    
+    return most_common, combined_explanation
+
+
+def print_review_result(review_result, classification_type):
+    """Format review result with a concise one-line status message.
+    
+    Args:
+        review_result (dict): Review result containing status, reason, and analysis
+        classification_type (str): Type of classification (Sector, Research Area, or Infectious Agent)
+    """
+    if review_result["status"] == "uncertain":
+        print(f"[?] {classification_type} Review: UNCERTAIN")
+        print(f"    Reason: {review_result['reason']}")
+    else:
+        print(f"[✓] {classification_type} Review: CERTAIN")
+
+
+def print_classification_results(original_classification, validation_result, review_result, classification_type):
+    """Print both validation and review results for a classification type."""
+    print_validation_result(original_classification, validation_result, classification_type)
+    print_review_result(review_result, classification_type)
+
 
 if __name__ == "__main__":
     print(f"Sector Categories: (length: {len(get_categories('Sector'))})")

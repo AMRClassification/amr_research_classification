@@ -4,6 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import textwrap
 
 
 def plot_accuracy_metrics(
@@ -279,43 +280,53 @@ def plot_error_constellations(constellation_patterns, save_path=None, show_plot=
 
     # Check if we have any processed data
     if not constellation_data:
-        plt.figure(figsize=(15, 10))
+        plt.figure(figsize=(16, 10))
         plt.text(
             0.5,
             0.5,
             "No valid error constellation patterns found",
             ha="center",
-            va="center",
+            va="center"
         )
         plt.title("Error Constellations by Domain")
     else:
-        # Create DataFrame and plot
         df_const = pd.DataFrame(constellation_data)
 
-        # Create figure
-        plt.figure(figsize=(15, 10))
+        # Wrap long labels with smaller width
+        df_const['Domain'] = df_const['Domain'].apply(lambda x: '\n'.join(textwrap.wrap(x, width=40)))
+        df_const['Pattern'] = df_const['Pattern'].apply(lambda x: '\n'.join(textwrap.wrap(x, width=50)))
 
-        # Create the plot
+        plt.figure(figsize=(16, 10))
+
         g = sns.barplot(
             data=df_const,
             y="Pattern",
             x="Count",
             hue="Domain",
             dodge=False,
-            palette="deep",
+            palette="deep"
         )
 
-        # Customize the plot
-        plt.title("Top Error Constellations by Domain")
-        plt.xlabel("Count")
-        plt.ylabel("")
+        # Customize the plot with smaller font sizes
+        plt.title("Top Error Constellations by Domain", fontsize=12)
+        plt.xlabel("Count", fontsize=10)
+        plt.ylabel("Labels", fontsize=10)
 
-        # Add value labels
+        # Add value labels with smaller font size
         for container in g.containers:
-            g.bar_label(container, padding=5)
+            g.bar_label(container, padding=5, fontsize=8)
 
-    # Adjust layout for long labels
-    plt.tight_layout()
+        # Adjust tick labels
+        plt.xticks(rotation=45, ha='right', fontsize=8)
+        plt.yticks(fontsize=12)
+
+        # Adjust legend
+        plt.legend(fontsize=8)
+
+        # Adjust margins to fit labels
+        plt.subplots_adjust(left=0.8)
+
+        plt.tight_layout()
 
     if save_path:
         plt.savefig(save_path, bbox_inches="tight", dpi=300)

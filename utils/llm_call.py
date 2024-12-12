@@ -66,7 +66,7 @@ def call_openai(prompt: str, model: str) -> dict:
         kwargs["response_format"] = {"type": "json_object"}
 
     completion = openai_client.chat.completions.create(**kwargs)
-
+    
     if model == "o1-mini":
         # Parse the o1-mini format
         content = completion.choices[0].message.content
@@ -84,6 +84,8 @@ def call_openai(prompt: str, model: str) -> dict:
                 }
         else:
             raise json.JSONDecodeError("No JSON object found", content, 0)
+        
+
         return parsed_result
     else:
         return json.loads(completion.choices[0].message.content)

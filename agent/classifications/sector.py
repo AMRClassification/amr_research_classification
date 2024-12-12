@@ -34,15 +34,20 @@ def classify_sector(title, abstract, model="gpt-4o-mini"):
 
             for item in sectors:
                 sector = item["sector"]
-                if sector not in valid_categories:
-                    closest_match = find_closest_category(sector, "Sector")
-                    if closest_match:
-                        corrected_sectors.append(closest_match)
+                # Handle case where sector might be a string
+                if isinstance(sector, str):
+                    sector = [sector]
+                
+                for s in sector:
+                    if s not in valid_categories:
+                        closest_matches = find_closest_category(s, "Sector", model=model)
+                        if closest_matches:
+                            corrected_sectors.extend(closest_matches)
+                        else:
+                            tries += 1
+                            continue
                     else:
-                        tries += 1
-                        continue
-                else:
-                    corrected_sectors.append(sector)
+                        corrected_sectors.append(s)
 
             parsed_result["sector"] = corrected_sectors
             parsed_result["explanation"] = "\n\n".join(
@@ -64,7 +69,7 @@ def classify_sector(title, abstract, model="gpt-4o-mini"):
                 return None
 
 
-def validate_sector_classification(title, abstract, prediction):
+def validate_sector_classification(title, abstract, prediction, model="gpt-4o-mini"):
     max_tries = 3
     tries = 0
 
@@ -72,7 +77,7 @@ def validate_sector_classification(title, abstract, prediction):
     while tries < max_tries:
         try:
             prompt = get_sector_validation_prompt(title, abstract, prediction)
-            result = call_llm(prompt, "gpt-4o-mini")
+            result = call_llm(prompt, model)
 
             # print(f"Validation prompt: {prompt}")
             # print(f"Validation result: {result}")
@@ -99,7 +104,7 @@ def validate_sector_classification(title, abstract, prediction):
 
                 if suggested_class not in valid_categories:
                     # Try to find a close match
-                    closest_match = find_closest_category(suggested_class, "Sector")
+                    closest_match = find_closest_category(suggested_class, "Sector", model=model)
                     if closest_match:
                         print(
                             f"Correcting suggested classification from '{suggested_class}' to '{closest_match}'"

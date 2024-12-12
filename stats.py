@@ -5,9 +5,7 @@ from utils.processing import compute_excel_accuracies
 
 def main():
     # Define the path to your Excel file
-    file_name = (
-        "results/Iteration 3 with validation call/4o_Human_Therapeutics_1060_800_200"
-    )
+    file_name = "4o_Human_Therapeutics_1060_500_10"
     file_path = f"{file_name}.xlsx"
 
     # Define print options for different analysis views

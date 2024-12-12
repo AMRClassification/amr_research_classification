@@ -1,3 +1,6 @@
+# TODO Rule: For Humas only bacterial and fungal pathogens are tagged in the classifcation,  HOWEVER: budget relevance is also decided among virus, parasites (Post processing)
+
+
 import os
 import sys
 
@@ -23,8 +26,8 @@ def main():
         return
 
     # Parameters
-    start_index = 803
-    num_entries = 20
+    start_index = 500
+    num_entries = 10
     num_runs = 2
     threshold = 0.8
 
@@ -102,6 +105,7 @@ def main():
                 "save_plots": False,
                 "plot_save_dir": "results/plots/",
             },
+            start_index=start_index
         )
 
     except Exception as e:

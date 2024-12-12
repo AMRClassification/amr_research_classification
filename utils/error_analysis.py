@@ -249,7 +249,7 @@ def analyze_error_constellations(
 
 
 def analyze_misclassifications(
-    ground_truths, predictions, id_column, domains=None, verbose=False, output_file=None
+    ground_truths, predictions, id_column, start_index=1, domains=None, verbose=False, output_file=None
 ):
     """
     Analyzes misclassifications across all entries and optionally writes indices to a file.
@@ -258,6 +258,7 @@ def analyze_misclassifications(
         ground_truths (list): List of ground truth strings
         predictions (list): List of prediction strings
         id_column (list): List of IDs corresponding to each entry
+        start_index (int): Starting row index in the Excel file (default is 1 for header row)
         domains (list): List of domains to analyze
         verbose (bool): Whether to print the analysis results
         output_file (str): Path to output file for writing misclassification indices
@@ -267,28 +268,41 @@ def analyze_misclassifications(
 
     misclassifications = {domain: [] for domain in domains}
     error_indices = {
-        domain: {"incorrect": [], "additional": [], "missing": []} for domain in domains
+        domain: {
+            "incorrect": [], 
+            "additional": [], 
+            "missing": [],
+            "uncertain": []
+        } for domain in domains
     }
 
-    # Collect misclassifications
-    for index, (ground_truth, prediction, entry_id) in enumerate(
+    # Collect misclassifications and uncertain predictions
+    for idx, (ground_truth, prediction, entry_id) in enumerate(
         zip(ground_truths, predictions, id_column)
     ):
-        print(f"Processing entry {index} with ID {entry_id}")
+        # Calculate actual Excel row number (add start_index to get real Excel row)
+        excel_row = idx + start_index
+        
         for domain in domains:
+            # Check for uncertain predictions
+            if "0000" in prediction and f"{domain} / Uncertain" in prediction:
+                error_indices[domain]["uncertain"].append((excel_row, entry_id))
+                continue
+                
             domain_misclassifications = identify_misclassifications(
                 ground_truth, prediction, domain
             )
             if domain_misclassifications:
                 misclassifications[domain].append(
                     {
-                        "index": entry_id,  # Use the ID instead of iteration index
+                        "row_idx": excel_row,
+                        "id": entry_id,
                         "errors": domain_misclassifications,
                     }
                 )
-                # Store IDs by error type
+                # Store both row index and ID by error type
                 for error in domain_misclassifications:
-                    error_indices[domain][error["type"]].append(entry_id)
+                    error_indices[domain][error["type"]].append((excel_row, entry_id))
 
     # Write indices to file if output_file is specified
     if output_file:
@@ -300,39 +314,57 @@ def analyze_misclassifications(
                 f.write(f"\n{domain} Domain:\n")
                 f.write("-" * 30 + "\n")
 
+                # First write uncertain predictions
+                uncertain = error_indices[domain]["uncertain"]
+                if uncertain:
+                    f.write(f"\nUNCERTAIN PREDICTIONS:\n")
+                    f.write(f"Count: {len(uncertain)}\n")
+                    f.write("IDs: ")
+                    f.write(", ".join([f"(Row: {row}, ID: {id})" for row, id in sorted(uncertain)]))
+                    f.write("\n")
+
+                # Then write other error types
                 for error_type in ["incorrect", "additional", "missing"]:
                     indices = error_indices[domain][error_type]
                     if indices:
                         f.write(f"\n{error_type.upper()} PREDICTIONS:\n")
                         f.write(f"Count: {len(indices)}\n")
-                        f.write(f"Indices: {', '.join(map(str, sorted(indices)))}\n")
+                        f.write("IDs: ")
+                        f.write(", ".join([f"(Row: {row}, ID: {id})" for row, id in sorted(indices)]))
+                        f.write("\n")
                 f.write("\n")
 
     if verbose:
         print("\nMisclassification Analysis:")
         for domain, errors in misclassifications.items():
-            if errors:
+            if errors or error_indices[domain]["uncertain"]:
                 print(f"\n{domain} Domain Misclassifications:")
                 print("-" * 80)
+
+                # Print uncertain predictions first
+                uncertain = error_indices[domain]["uncertain"]
+                if uncertain:
+                    print("\nUNCERTAIN PREDICTIONS:")
+                    print("-" * 40)
+                    for excel_row, entry_id in sorted(uncertain):
+                        print(f"Excel Row {excel_row}, ID {entry_id}")
 
                 # Group by error type
                 error_types = {"incorrect": [], "additional": [], "missing": []}
                 for error in errors:
                     for err in error["errors"]:
-                        error_types[err["type"]].append((error["index"], err))
+                        error_types[err["type"]].append((error["row_idx"], error["id"], err))
 
                 # Print each error type
                 for error_type, type_errors in error_types.items():
                     if type_errors:
                         print(f"\n{error_type.upper()} PREDICTIONS:")
                         print("-" * 40)
-                        for index, err in type_errors:
-                            print(f"\nEntry {index}")
+                        for excel_row, entry_id, err in type_errors:
+                            print(f"\nExcel Row {excel_row}, ID {entry_id}")
                             print(f"Details: {err['details']}")
                             if error_type in ["additional", "missing"]:
-                                print(
-                                    f"Correct Predictions: {err.get('correct_hits', 'N/A')}"
-                                )
+                                print(f"Correct Predictions: {err.get('correct_hits', 'N/A')}")
                             print(f"Ground Truth: {err['ground_truth']}")
                             print(f"Prediction: {err['prediction']}")
                             print("-" * 40)

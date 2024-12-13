@@ -10,19 +10,19 @@ class InputState(TypedDict):
 
 class SectorClassification(TypedDict):
     """Result of sector classification."""
-    sector: str
+    sector: List[str]
     explanation: str
 
 
 class ResearchAreaClassification(TypedDict):
     """Result of research area classification."""
-    research_area: str
+    research_area: List[str]
     explanation: str
 
 
 class InfectiousAgentClassification(TypedDict):
     """Result of infectious agent classification."""
-    infectious_agent: str
+    infectious_agent: List[str]
     explanation: str
 
 

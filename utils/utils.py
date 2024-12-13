@@ -157,11 +157,10 @@ Output Format:
             for match in result["matches"]:
                 closest_match = match.get("closest_match")
                 if closest_match in valid_categories:
-                    print(f"\nFound match for invalid category '{match['invalid_category']}':")
-                    print(f"Explanation: {match.get('explanation', 'No explanation provided')}")
                     closest_matches.append(closest_match)
                 else:
                     print(f"\nNo confident match found for '{match['invalid_category']}'")
+                    print(f"Closest match: {closest_match}")
             
             return closest_matches if closest_matches else None
                 

@@ -130,7 +130,7 @@ class Agent:
                     }
             return state
         except Exception as e:
-            print(f"Error in sector validation: {e}")
+            print(f"Error in sector validation node: {e}")
             return state
 
     def review_sector_validation(self, state: dict) -> dict:
@@ -235,7 +235,7 @@ class Agent:
                         if validation["suggested_classification"]:
                             return {
                                 "research_area_result": {
-                                    "research_area": [validation["suggested_classification"]],
+                                    "research_area": validation["suggested_classification"],
                                     "explanation": (
                                         result["explanation"]
                                         + "\n\nValidation Result:\n"
@@ -273,7 +273,7 @@ class Agent:
             return state
             
         except Exception as e:
-            print(f"Error in research area validation: {e}")
+            print(f"Error in research area validation node: {e}")
             return state
 
     def review_research_area_validation(self, state: dict) -> dict:
@@ -348,54 +348,54 @@ class Agent:
 
     def validate_infectious_agent(self, state: ClassificationState) -> Dict[str, Any]:
         """Validate infectious agent classification."""
-        try:
-            from classifications.infectious_agent import validate_infectious_agent_classification
-            
-            if not state.get("infectious_agent_result"):
-                return state
 
-            validation = validate_infectious_agent_classification(
-                title=state["input"]["title"],
-                abstract=state["input"]["abstract"],
-                prediction=str(state["infectious_agent_result"]["infectious_agent"]),
-                model=self.model
+        from classifications.infectious_agent import validate_infectious_agent_classification
+        
+        if not state.get("infectious_agent_result"):
+            return state
+
+        validation = validate_infectious_agent_classification(
+            title=state["input"]["title"],
+            abstract=state["input"]["abstract"],
+            prediction=str(state["infectious_agent_result"]["infectious_agent"]),
+            model=self.model
+        )
+
+        if validation:
+            print_validation_result(
+                original_classification=state["infectious_agent_result"]["infectious_agent"],
+                validation_result=validation,
+                classification_type="Infectious Agent"
             )
 
-            if validation:
-                print_validation_result(
-                    original_classification=state["infectious_agent_result"]["infectious_agent"],
-                    validation_result=validation,
-                    classification_type="Infectious Agent"
-                )
-
-                if validation["is_correct"]:
-                    return {
-                        "infectious_agent_result": {
-                            "infectious_agent": state["infectious_agent_result"]["infectious_agent"],
-                            "explanation": (
-                                state["infectious_agent_result"]["explanation"]
-                                + "\n\nValidation Result:\n"
-                                + validation["explanation"]
-                            )
-                        },
-                        "current_step": "validate_infectious_agent"
-                    }
-                else:
-                    return {
-                        "infectious_agent_result": {
-                            "infectious_agent": validation["suggested_classification"],
-                            "explanation": (
-                                state["infectious_agent_result"]["explanation"]
-                                + "\n\nValidation Result:\n"
-                                + validation["explanation"]
-                            )
-                        },
-                        "current_step": "validate_infectious_agent"
-                    }
-            return state
-        except Exception as e:
-            print(f"Error in infectious agent validation: {e}")
-            return state
+            if validation["is_correct"]:
+                return {
+                    "infectious_agent_result": {
+                        "infectious_agent": state["infectious_agent_result"]["infectious_agent"],
+                        "explanation": (
+                            state["infectious_agent_result"]["explanation"]
+                            + "\n\nValidation Result:\n"
+                            + validation["explanation"]
+                        )
+                    },
+                    "current_step": "validate_infectious_agent"
+                }
+            else:
+                return {
+                    "infectious_agent_result": {
+                        "infectious_agent": validation["suggested_classification"],
+                        "explanation": (
+                            state["infectious_agent_result"]["explanation"]
+                            + "\n\nValidation Result:\n"
+                            + validation["explanation"]
+                        )
+                    },
+                    "current_step": "validate_infectious_agent"
+                }
+        return state
+        # except Exception as e:
+        #     print(f"Error in infectious agent validation node: {e}")
+        #     return state
 
     def review_infectious_agent_validation(self, state: dict) -> dict:
         """Reviews the infectious agent validation explanation and determines next steps."""
@@ -656,9 +656,10 @@ class Agent:
         # Save results after each successful classification
         self.save_results()
 
-        # Print statistics for this entry
-        self.print_classification_stats(successful_runs)
+        # # Print statistics for this entry
+        # self.print_classification_stats(successful_runs)
 
+        
         return self.results_df
 
     def get_results(self) -> pd.DataFrame:

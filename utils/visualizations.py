@@ -94,33 +94,20 @@ def plot_accuracy_metrics(
         )
         ax2.set_title("Uncertain Predictions by Domain")
 
-    # Prediction-wise accuracies (right side)
+    # Complete match accuracy (right side)
     pred_data = []
-    if prediction_summary.get("by_domain"):
-        for domain, stats in prediction_summary["by_domain"].items():
-            total = stats["correct"] + stats["incorrect"]
-            if total > 0:
-                accuracy = stats["correct"] / total
-                pred_data.append(
-                    {
-                        "Category": domain,
-                        "Accuracy": accuracy * 100,
-                    }
-                )
-
-        # Add overall accuracy if available
-        if "overall" in prediction_summary:
-            total_overall = (
-                prediction_summary["overall"]["correct"]
-                + prediction_summary["overall"]["incorrect"]
-            )
-            if total_overall > 0:
-                overall_accuracy = (
-                    prediction_summary["overall"]["correct"] / total_overall
-                )
-                pred_data.append(
-                    {"Category": "Overall", "Accuracy": overall_accuracy * 100}
-                )
+    if prediction_summary.get("complete_matches"):
+        for domain, stats in prediction_summary["complete_matches"].items():
+            exact_matches = stats["exact_matches"]
+            total = stats["total"]
+            accuracy = (exact_matches / total * 100) if total > 0 else 0
+            
+            pred_data.append({
+                "Category": domain,
+                "Accuracy": accuracy,
+                "Exact Matches": exact_matches,
+                "Total": total
+            })
 
     if pred_data:  # Only plot if we have data
         df_pred = pd.DataFrame(pred_data)
@@ -129,22 +116,31 @@ def plot_accuracy_metrics(
             x="Category",
             y="Accuracy",
             ax=ax3,
-            color=sns.color_palette()[0],
+            color=sns.color_palette()[0]
         )
-        ax3.set_title("Prediction-wise Accuracies")
+        ax3.set_title("Complete Match Accuracy by Domain")
         ax3.set_ylabel("Accuracy (%)")
         ax3.set_xticklabels(ax3.get_xticklabels(), rotation=45, ha="right")
-        for container in ax3.containers:
-            ax3.bar_label(container, fmt="%.1f%%", padding=3)
+
+        # Add value labels showing both percentage and fraction
+        for i, row in df_pred.iterrows():
+            ax3.text(
+                i,
+                row["Accuracy"],
+                f'{row["Accuracy"]:.1f}%\n({row["Exact Matches"]}/{row["Total"]})',
+                ha='center',
+                va='bottom',
+                fontsize=10
+            )
     else:
         ax3.text(
             0.5,
             0.5,
-            "No prediction-wise accuracy data available",
+            "No prediction data available",
             ha="center",
             va="center",
         )
-        ax3.set_title("Prediction-wise Accuracies")
+        ax3.set_title("Complete Match Accuracy by Domain")
 
     plt.tight_layout()
 

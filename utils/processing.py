@@ -21,7 +21,6 @@ def compute_excel_accuracies(
     file_path,
     print_options=None,
     viz_options=None,
-    start_index=1
 ):
     """
     Reads an Excel file and computes hierarchical accuracies for Ground Truth vs Prediction.
@@ -37,7 +36,6 @@ def compute_excel_accuracies(
             - visualize_analysis (bool): Whether to display analysis plots
             - save_plots (bool): Whether to save plots to files
             - plot_save_dir (str): Directory for saving plots
-        start_index (int): Starting row index in the Excel file (default is 1 for header row)
 
     Returns:
         tuple: (domain_accuracies, prediction_summary, misclassifications, constellation_patterns)
@@ -119,7 +117,6 @@ def compute_excel_accuracies(
         id_column=df["Id"].iloc[
             len(df) - len(certain_ground_truths) :
         ],  # Get IDs for non-uncertain entries
-        start_index=start_index,
         verbose=print_options.get("misclassifications", False),
         output_file=misclass_output,
     )

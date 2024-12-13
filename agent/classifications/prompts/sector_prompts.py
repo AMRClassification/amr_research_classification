@@ -105,8 +105,8 @@ You are an AI specialized in validating the classification of research papers in
 ```json
 {{
     "validation_result": {{
-        "is_correct": true/false -> indicating if the current classification is correct,
-        "correct_classification": "str -> the correct classification if current is wrong, otherwise null",
+        "is_correct": true/false -> indicating if the original classifications are correct,
+        "correct_classification": ["List[str] -> the correct classifications"],
         "evidence": ["List[str] -> relevant quotes from input"],
         "explanation": "str -> brief explanation of the validation decision",
     }}

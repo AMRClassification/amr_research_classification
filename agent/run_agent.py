@@ -26,9 +26,9 @@ def main():
         return
 
     # Parameters
-    start_index = 500
-    num_entries = 10
-    num_runs = 2
+    start_index = 800
+    num_entries = 200
+    num_runs = 5
     threshold = 0.8
 
     # # Model selection
@@ -46,7 +46,7 @@ def main():
     # model_choice = input("\nSelect model (1-4): ")
     # model = model_choices.get(model_choice, "gpt-4o-mini")
 
-    model = "gpt-4o-mini"
+    model = "o1-mini"
 
     print(
         f"\nStarting classification of {num_entries} entries from index {start_index}"
@@ -105,7 +105,6 @@ def main():
                 "save_plots": False,
                 "plot_save_dir": "results/plots/",
             },
-            start_index=start_index
         )
 
     except Exception as e:

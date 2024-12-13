@@ -90,23 +90,32 @@ def identify_misclassifications(ground_truth, prediction, domain):
 def prediction_accuracy(ground_truths, predictions, verbose=True):
     """
     Summarizes prediction results for each domain and overall.
-
-    Args:
-        ground_truths (list): List of ground truth strings
-        predictions (list): List of prediction strings
-        verbose (bool): Whether to print the analysis results
+    Now includes complete match accuracy per domain.
     """
     domains = ["Sector", "Research Area", "Infectious Agent"]
-    summary = {"overall": {"correct": 0, "incorrect": 0}, "by_domain": {}}
+    summary = {
+        "overall": {"correct": 0, "incorrect": 0}, 
+        "by_domain": {},
+        "complete_matches": {}  # New section for complete matches
+    }
 
     # Initialize domain summaries
     for domain in domains:
         summary["by_domain"][domain] = {"correct": 0, "incorrect": 0}
+        summary["complete_matches"][domain] = {
+            "exact_matches": 0,
+            "total": len(ground_truths)
+        }
 
     # Process each prediction
     for ground_truth, prediction in zip(ground_truths, predictions):
         gt_domains = parse_classification_categories(ground_truth)
         pred_domains = parse_classification_categories(prediction)
+
+        # Check complete matches per domain
+        for domain in domains:
+            if gt_domains.get(domain, []) == pred_domains.get(domain, []):
+                summary["complete_matches"][domain]["exact_matches"] += 1
 
         for domain in domains:
             gt_categories = gt_domains.get(domain, [])

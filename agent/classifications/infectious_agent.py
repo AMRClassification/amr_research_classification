@@ -44,20 +44,16 @@ def classify_infectious_agent(title, abstract, model="gpt-4o-mini"):
 
             for item in agents:
                 agent = item["infectious_agent"]
-                # Handle case where agent might be a string
-                if isinstance(agent, str):
-                    agent = [agent]
                 
-                for a in agent:
-                    if a not in valid_categories:
-                        closest_matches = find_closest_category(a, "Infectious Agent", model=model)
-                        if closest_matches:
-                            corrected_agents.extend(closest_matches)
-                        else:
-                            tries += 1
-                            continue
+                if agent not in valid_categories:
+                    closest_matches = find_closest_category(agent, "Infectious Agent", model=model)
+                    if closest_matches:
+                        corrected_agents.extend(closest_matches)
                     else:
-                        corrected_agents.append(a)
+                        tries += 1
+                        continue
+                else:
+                    corrected_agents.append(agent)
 
             parsed_result["infectious_agent"] = corrected_agents
             parsed_result["explanation"] = "\n\n".join(
@@ -87,7 +83,8 @@ def validate_infectious_agent_classification(title, abstract, prediction, model=
 
     while tries < max_tries:
         try:
-            prompt = get_infectious_agent_validation_prompt(title, abstract, prediction)
+
+            prompt = get_infectious_agent_validation_prompt(title, abstract, str(prediction))
             result = call_llm(prompt, model)
 
             if (
@@ -108,21 +105,31 @@ def validate_infectious_agent_classification(title, abstract, prediction, model=
                 "correct_classification"
             ):
                 valid_categories = get_categories("Infectious Agent")
-                suggested_class = validation["correct_classification"]
+                suggested_classes = validation["correct_classification"]
 
-                if suggested_class not in valid_categories:
-                    # Try to find a close match
-                    closest_match = find_closest_category(suggested_class, "Infectious Agent", model=model)
-                    if closest_match:
-                        print(
-                            f"Correcting suggested classification from '{suggested_class}' to '{closest_match}'"
-                        )
-                        validation["correct_classification"] = closest_match
+                # Handle suggested classifications
+                corrected_classes = []
+
+                for suggested_class in suggested_classes:
+                    if suggested_class not in valid_categories:
+                        # Try to find a close match
+                        closest_match = find_closest_category(suggested_class, "Infectious Agent", model=model)
+                        if closest_match:
+                            print(
+                                f"Correcting suggested classification from '{suggested_class}' to '{', '.join(closest_match)}'"
+                            )
+                            corrected_classes.extend(closest_match)
+                        else:
+                            print(f"Invalid suggested classification: {suggested_class}")
+                            tries += 1
+                            continue
                     else:
-                        print(f"Invalid suggested classification: {suggested_class}")
-                        tries += 1
-                        continue
+                        corrected_classes.append(suggested_class)
+
+                if corrected_classes:
+                    validation["correct_classification"] = corrected_classes
                     
+
             validation_response = {
                 "is_correct": validation["is_correct"],
                 "suggested_classification": validation.get("correct_classification"),

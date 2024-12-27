@@ -40,7 +40,6 @@ ENV/
 # Project specific
 results/
 assets/
-*.xlsx
 *.xls
 *.csv
 *.json

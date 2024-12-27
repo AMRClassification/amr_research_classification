@@ -5,8 +5,8 @@ import os
 from difflib import get_close_matches, SequenceMatcher
 from collections import Counter
 
-file_path = "../assets/Dashboard Categories to be used.xlsx"
-docs_path = "../assets/docs"
+docs_path = "assets/docs"
+file_path = "assets/Dashboard Categories to be used.xlsx"
 
 
 def get_dataframe():

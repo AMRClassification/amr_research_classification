@@ -9,27 +9,11 @@ Sector Domain:
 Research Area Domain:
 ------------------------------
 
-INCORRECT PREDICTIONS:
-Count: 4
-IDs: (Row: 8, ID: 35014), (Row: 14, ID: 35087), (Row: 21, ID: 35151), (Row: 24, ID: 35192)
-
-MISSING PREDICTIONS:
+ADDITIONAL PREDICTIONS:
 Count: 1
-IDs: (Row: 22, ID: 35171)
+IDs: (Row: 3, ID: 930)
 
 
 Infectious Agent Domain:
 ------------------------------
-
-INCORRECT PREDICTIONS:
-Count: 3
-IDs: (Row: 17, ID: 35090), (Row: 27, ID: 35256), (Row: 28, ID: 35262)
-
-ADDITIONAL PREDICTIONS:
-Count: 1
-IDs: (Row: 10, ID: 35081)
-
-MISSING PREDICTIONS:
-Count: 3
-IDs: (Row: 9, ID: 35021), (Row: 10, ID: 35081), (Row: 14, ID: 35087)
 

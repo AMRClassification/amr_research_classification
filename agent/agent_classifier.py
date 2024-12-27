@@ -217,37 +217,32 @@ class Agent:
             
             if has_therapeutics:
                 from classifications.research_area import validate_therapeutics_classification
-                
                 validation = validate_therapeutics_classification(
                     title=state["input"]["title"],
                     abstract=state["input"]["abstract"],
                     prediction=str(result["research_area"]),
                     model=self.model
                 )
+            else:
+                from classifications.research_area import validate_non_therapeutics_classification
+                validation = validate_non_therapeutics_classification(
+                    title=state["input"]["title"],
+                    abstract=state["input"]["abstract"],
+                    prediction=str(result["research_area"]),
+                    model=self.model
+                )
 
-                if validation:
-                    print_validation_result(
-                        original_classification=result["research_area"],
-                        validation_result=validation,
-                        classification_type="Research Area"
-                    )
-                    if not validation["is_correct"]:
-                        if validation["suggested_classification"]:
-                            return {
-                                "research_area_result": {
-                                    "research_area": validation["suggested_classification"],
-                                    "explanation": (
-                                        result["explanation"]
-                                        + "\n\nValidation Result:\n"
-                                        + validation["explanation"]
-                                    )
-                                },
-                                "current_step": "validate_research_area"
-                            }
-                    else:
+            if validation:
+                print_validation_result(
+                    original_classification=result["research_area"],
+                    validation_result=validation,
+                    classification_type="Research Area"
+                )
+                if not validation["is_correct"]:
+                    if validation["suggested_classification"]:
                         return {
                             "research_area_result": {
-                                "research_area": result["research_area"],
+                                "research_area": validation["suggested_classification"],
                                 "explanation": (
                                     result["explanation"]
                                     + "\n\nValidation Result:\n"
@@ -256,19 +251,18 @@ class Agent:
                             },
                             "current_step": "validate_research_area"
                         }
-            else:
-                # For non-therapeutics classifications, add explicit validation skip message
-                print("[✓] Research Area: VALIDATION SKIPPED (no therapeutics classification)")
-                return {
-                    "research_area_result": {
-                        "research_area": result["research_area"],
-                        "explanation": (
-                            result["explanation"]
-                            + "\n\nValidation: Not required (no therapeutics classification)"
-                        )
-                    },
-                    "current_step": "validate_research_area"
-                }
+                else:
+                    return {
+                        "research_area_result": {
+                            "research_area": result["research_area"],
+                            "explanation": (
+                                result["explanation"]
+                                + "\n\nValidation Result:\n"
+                                + validation["explanation"]
+                            )
+                        },
+                        "current_step": "validate_research_area"
+                    }
             
             return state
             
@@ -310,9 +304,13 @@ class Agent:
                 "research_area_next": ["combined_validation"]
             }
         else:
+            # Replace "Clinical Testing" with "Development" in research areas
+            updated_areas = [area.replace("Clinical Testing", "Development") 
+                           for area in state["research_area_result"]["research_area"]]
+            
             return {
                 "research_area_result": {
-                    "research_area": state["research_area_result"]["research_area"],
+                    "research_area": updated_areas,
                     "explanation": (
                         state["research_area_result"]["explanation"] +
                         f"\n\n{review['status'].upper()}\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}"

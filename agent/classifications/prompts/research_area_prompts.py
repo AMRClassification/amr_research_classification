@@ -30,7 +30,7 @@ You are an AI specialized in classifying research papers on antimicrobial resist
   - **Rare Exceptions:** Assign multiple research areas only if the research equally and explicitly addresses multiple areas as main objectives.
   - **Equal Focus Required:** Multiple classifications are permitted only when multiple research areas are mentioned as separate efforts with clear significance and focus in the research.
   - **Main Focus Rule:** If one research area is clearly the primary focus (e.g., constitutes 80% or more of the content), do not assign additional classifications even if other areas are mentioned.
-  - **Discovery to Development Exception:** If the research explicitly covers the complete process from hit discovery (including target assessment, validation, hit identification, hit to lead, lead identification, lead optimization) through to clinical phases, classify as BOTH Discovery AND Development.
+  - **Discovery to Clinical Testing Exception:** If the research explicitly covers the complete process from hit discovery (including target assessment, validation, hit identification, hit to lead, lead identification, lead optimization) through to testing in the lab, classify as BOTH Discovery AND Clinical Testing.
   - **Avoid Overclassification:** Do not assign multiple classifications simply because multiple topics are mentioned; focus on the single main goal of the research unless multiple efforts are clearly mentioned separately.
 
 #### c. Exclude External References:
@@ -41,7 +41,7 @@ You are an AI specialized in classifying research papers on antimicrobial resist
 - **Translational Research:** Represents transitions between phases and should be classified based on the target phase, not as a separate category.
 - **Diagnostics:** Refers specifically to the detection and identification of infectious agents to determine which agent is present.
 - **Therapeutics Discovery:** Focuses on the detection and validation of therapeutic products.
-- **Therapeutics Development:** The research is explitly performing clinical trials currently or in the immediate future.
+- **Therapeutics Testing:** The research is explitly performing clinical trials currently or in the immediate future.
 - **Capacity Building:** Specifically refers to efforts aimed at refurbishing or increasing laboratory infrastructure and capabilities.
 
 #### 4. Keywords:
@@ -62,7 +62,7 @@ The output should be a JSON object with the following structure:
                 {{
                     "text_snippet": "str -> the actual quote(s) from the input text where it takes the information from",
                     "corresponding_keyword": "str -> the keyword from the Kewords section that this connects to",
-                    "keyword_paragraph": "str -> the paragraph in the Keywords section, where the keyword is drawn in the following format: [Vaccines / Development]"
+                    "keyword_paragraph": "str -> the paragraph in the Keywords section, where the keyword is drawn in the following format: [Vaccines / Clinical Testing]"
                 }}
             ],
             "explanation": "str -> Explanation how this explains the addition of this research area to the classification",
@@ -89,7 +89,7 @@ You are an AI specialized in validating the classification of research papers in
 
 **Validation Rules for Therapeutics:**
 
-1. **Discovery vs Development:**
+1. **Discovery vs Clinical Testing:**
    
    a) **Therapeutics / Discovery** (3100):
    - Research is in early stages (lab/preclinical)
@@ -97,9 +97,8 @@ You are an AI specialized in validating the classification of research papers in
    - Involves lead optimization
    - Preclinical testing/trials
    - No mention of clinical trials
-   - The word "development" alone doesn't indicate Development phase
    
-   b) **Therapeutics / Development** (3200):
+   b) **Therapeutics / Clinical Testing** (3200):
    - Research involves clinical trials
    - Explicitly mentions Phase 1, 2, or 3
    - Testing in human subjects
@@ -107,7 +106,7 @@ You are an AI specialized in validating the classification of research papers in
    - Must explicitly state clinical trial involvement
    - Does the title or abstract explicitly mention that there are clinical trials performed? Otherwise, classify only as "Therapeutics / Discovery"
 
-   c) **Both Discovery and Development:**
+   c) **Both Discovery and Clinical Testing:**
    - Research explicitly covers the complete process from hit discovery through clinical phases
    - Must include target assessment, validation, hit identification, hit to lead, lead identification, lead optimization
    - AND explicitly mention actual involvement in clinical trials
@@ -150,6 +149,64 @@ Here are some more general guidelines:
 
 
 
+def get_research_area_validation_prompt(title, abstract, prediction):
+    return f"""
+You are an AI specialized in validating the classification of research papers into research areas. Your task is to verify if the current given classification is correct for the paper's title and abstract.
+
+**Input:**
+- **Title:** {title}
+- **Abstract:** {abstract}
+- **Current Classification:** {prediction}
+
+**Classification Choices:**
+{research_area_options}
+
+**Validation Rules:**
+
+### 1. Classification Rules:
+
+#### a. Direct Mention:
+- **Primary Goal:** Focus on identifying the major goal or objective of the research.
+- **Classification Assignment:** Assign research areas that are explicitly mentioned in the title/abstract as defined by the keywords.
+
+#### b. Preference for Single Classification:
+- **Default to Single Classification:** Assign only one research area that best represents the main focus of the research.
+- **When to Assign Multiple Classifications:**
+  - **Rare Exceptions:** Assign multiple research areas only if the research equally and explicitly addresses multiple areas as main objectives.
+  - **Equal Focus Required:** Multiple classifications are permitted only when multiple research areas are mentioned as separate efforts with clear significance and focus in the research.
+  - **Main Focus Rule:** If one research area is clearly the primary focus (e.g., constitutes 80% or more of the content), do not assign additional classifications even if other areas are mentioned.
+  - **Discovery to Clinical Testing Exception:** If the research explicitly covers the complete process from hit discovery (including target assessment, validation, hit identification, hit to lead, lead identification, lead optimization) through to testing in the lab, classify as BOTH Discovery AND Clinical Testing.
+  - **Avoid Overclassification:** Do not assign multiple classifications simply because multiple topics are mentioned; focus on the single main goal of the research unless multiple efforts are clearly mentioned separately.
+
+#### c. Exclude External References:
+- **Ignore:** References to other works, related studies, citations, or mentions of earlier work.
+- **Focus:** Only on topics directly addressed in the current research.
+
+#### d. Category-Specific Guidelines:
+- **Translational Research:** Represents transitions between phases and should be classified based on the target phase, not as a separate category.
+- **Diagnostics:** Refers specifically to the detection and identification of infectious agents to determine which agent is present.
+- **Therapeutics Discovery:** Focuses on the detection and validation of therapeutic products.
+- **Therapeutics Testing:** The research is explitly performing clinical trials currently or in the immediate future.
+- **Capacity Building:** Specifically refers to efforts aimed at refurbishing or increasing laboratory infrastructure and capabilities.
+
+#### 2. Keywords:
+Focus on the following keywords to determine the research area.
+{research_area_keywords}
+
+**Output Format:**
+```json
+{{
+    "validation_result": {{
+        "is_correct": true/false -> indicating if the original classifications are correct,
+        "correct_classification": ["List[str] -> the correct classifications"],
+        "evidence": ["List[str] -> relevant quotes from input"],
+        "explanation": "str -> brief explanation of the validation decision",
+    }}
+}}
+```
+"""
+
+
 def get_research_area_validation_review_prompt(title, abstract, validation_result):
     return f"""
 You are an AI specialized in determining if a research area classification should be marked as "uncertain". Your task is to evaluate if the research stage is clearly identifiable or if there is significant ambiguity.
@@ -187,11 +244,11 @@ Validation Result: {validation_result}
    - You don't agree with the classification result based on the reasoning laid out in the validation
 
 **Note:**
-- In the case of distinction between Discovery and Development, if the title/abstract doesn't explicitly mention clinical trials, this is a clear indicator for being classified as Discovery and should still be considered as "certain". However, sometimes from the wording it is hard to tell how far the research already progressed (e.g. "We will demonstrate the preclinical safety, pharmacokinetics and efficacy of APC247, and advance this candidate into the first FIH clinical trial to provide human dose and safety data."), and in these cases it should be reviewed as "uncertain". But if there clearly isn't any clinical trials mentioned and the validation result is it shall be classified as Discovery, it should be classified as "certain".
-- If the research covers the complete discovery process (including target assessment & validation, hit identification, hit to lead, lead identification, lead optimization) AND continues into clinical phases, it should be classified as BOTH Discovery and Development
+- In the case of distinction between Discovery and Clinical Testing, if the title/abstract doesn't explicitly mention clinical trials, this is a clear indicator for being classified as Discovery and should still be considered as "certain". However, sometimes from the wording it is hard to tell how far the research already progressed (e.g. "We will demonstrate the preclinical safety, pharmacokinetics and efficacy of APC247, and advance this candidate into the first FIH clinical trial to provide human dose and safety data."), and in these cases it should be reviewed as "uncertain". But if there clearly isn't any clinical trials mentioned and the validation result is it shall be classified as Discovery, it should be classified as "certain".
+- If the research covers the complete discovery process (including target assessment & validation, hit identification, hit to lead, lead identification, lead optimization) AND continues into clinical phases, it should be classified as BOTH Discovery and Clinical Testing
 - If there is a clear focus that can be identified and the respective classification was made, it should be classified as "certain"
 - A validation result of INCORRECT doesn't mean the review should be uncertain, as long as the explanation of the correction during validation is logical and correct
-- If the research expresses hope or intention to reach development stage in the future (e.g. "we hope to advance to clinical trials"), this should be marked as "uncertain" since the development stage is not yet confirmed
+- If the research expresses hope or intention to reach testing stage in the future (e.g. "we hope to advance to clinical trials"), this should be marked as "uncertain" since the testing stage is not yet confirmed
 
 **Output Format:**
 Return a JSON object with the following structure:

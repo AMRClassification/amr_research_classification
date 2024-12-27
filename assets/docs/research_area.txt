@@ -37,7 +37,7 @@ a)	Discovery-discovery and preclinical testing of innovative methods
 •	Target assessment & validation, the hit discovery process (hit identification, hit to lead, lead identification, lead optimisation)
 •	Preclinical development – ends with submission of an IND (Investigational New Drug) application
 
-b)	Development – Clinical trials phase 1- phase 3
+b)	Clinical Testing – Clinical trials phase 1- phase 3
 •	Clinical Studies/Trials Phase 1 to Phase 3, also includes trials that will lead to an expansion of the product label or additional indications (diseases/infections)
 •	This stage concludes with submission of an NDA (New Drug Application)
 
@@ -61,7 +61,7 @@ c)	Approval/Post Approval -
 a)	Discovery
 •	identification, selection and improvement/characterisation of vaccine components (antigen, adjuvant, carrier/delivery system, etc) that have the ability to induce immunogenicity (induction of cellular and humoral immune response/adaptive immune responses)
 •	testing of serum in order to identify antigens/immunogens (samples from exposed individuals for testing immunogenicity), testing for ability to induce protective immune responses (e.g. by challenge with pathogen in animal or human models)
-b)	Development
+b)	Clinical Testing
 •	Clinical Studies/Trials Phase 1 to Phase 3, also includes trials that will lead to an expansion of the product label or additional indications (diseases/infections)
 •	This stage concludes with submission of an NDA (New Drug Application)
 
@@ -86,7 +86,7 @@ c)	Approval/Post Approval
 • Sub-categories:
 a)	Discovery
 •	identification, selection and improvement/characterisation of product
-b)	Development
+b)	Clinical Testing
 •	clinical trial Phase 1 to Phase 3, also includes trials that will lead to an expansion of the product label (additional indications)
 •	This stage concludes with submission of an NDA (New Drug Application)
 c)	Approval/Post Approval
@@ -110,7 +110,7 @@ c)	Approval/Post Approval
 • Sub-categories:
 a)	Discovery
 •	concept, feasibility, prototype development, and development of technical specifications
-b)	Development
+b)	Clinical Testing
 •	design lock, validation of manufacturing process, validation of accuracy and analytical performance in (clinical) trials, validation of performance and operational characteristics during uncontrolled routine use in programmatic settings
 c)	Approval/Post Approval
 •	First market authorisation (early-commercialisation) for a specific product
@@ -183,7 +183,7 @@ Product Development Stages
 •	Preclinical trials
 
 
-2.	Development
+2.	Clinical Testing
 
 •	TRL: 6-8.
 •	Includes:

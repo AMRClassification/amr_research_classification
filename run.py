@@ -15,7 +15,7 @@ if __name__ == "__main__":
     streamlit_command = ["streamlit", "run", 
                         os.path.join(app_dir, "app.py"),
                         "--server.address", "localhost",
-                        "--server.port", "8080"]
+                        "--server.port", "8501"]
     
     # Run the Streamlit app
     subprocess.run(streamlit_command) 

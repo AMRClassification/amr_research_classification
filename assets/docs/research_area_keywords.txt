@@ -1,0 +1,313 @@
+Technology Readiness Levels (TRL)
+• TRL 1: Basic principles observed.
+• TRL 2: Concept formulated.
+• TRL 3: Experimental proof of concept.
+• TRL 4: Technology validated in the lab.
+• TRL 5: Technology validated in a relevant environment.
+• TRL 6: Technology demonstrated in a relevant environment.
+• TRL 7: System prototype in an operational environment.
+• TRL 8: System complete and qualified.
+• TRL 9: Actual system proven in operational environment.
+
+---
+
+Research Area: Basic Research / Fundamental (2100)
+Keywords:
+- Fundamental research
+- Basic research
+- TRL 1, TRL 2
+- One Health interactions
+- Pathogen mechanisms
+- Disease mechanisms
+- Pathogen transmission
+- Virulence factors
+- Microbiome roles
+- Understanding of biological processes
+- Understanding of biological chemistry
+
+---
+
+Research Area: Basic Research / Towards a Product (2200)
+Keywords:
+- TRL 3
+- Platform technologies
+- Putative new products
+- Early imaging technologies
+- Early detection assays
+- Drug design models
+- Vaccine design models
+- Tissue culture design
+- Animal model design
+- Mode of action identification
+- Search for potential target
+
+---
+
+Research Area: Capacity Building (7200)
+Keywords:
+- Capacity building
+- Resource capacity enhancement
+- Laboratory enhancement
+- Staff training
+- Network formation
+- Knowledge sharing
+- Resource development
+- Infrastructure enhancement
+- Human resource development
+
+---
+
+Research Area: Diagnostics / Discovery (5100)
+Keywords:
+- Diagnostic product discovery
+- Diagnostic prototype
+- Diagnostic concept development
+- Diagnostic feasibility
+- Technical specifications
+- Early-stage diagnostics
+- Product for identification of causative agent
+- Product for identification of resistance
+- Susceptibility testing
+- Early stage detection and screening
+- Early stage surveillance and epidemiology tools
+- Early stage companion diagnostics
+- Early stage machine learning detection tools
+- Early stage genotyping technologies
+- Early stage trait selective animal/plant breeding tools
+
+---
+
+Research Area: Diagnostics / Clinical Testing (5200)
+Keywords:
+- Diagnostic design lock
+- Manufacturing process validation
+- Analytical performance validation
+- Clinical validation of diagnostics
+- Operational characteristics validation
+- Diagnostic clinical trials
+
+---
+
+Research Area: Diagnostics / Approval & Post approval (5400)
+Keywords:
+- Diagnostic approval
+- Diagnostic market authorization
+- Diagnostic pharmacovigilance
+- Post-approval diagnostic studies
+- Diagnostic optimization
+- Diagnostics clinical use studies
+- Diagnostic guidelines incorporation
+- Diagnostic value-assessment
+- Diagnostic payor decisions
+
+---
+
+Research Area: Operational (6100)
+Keywords:
+- Operational research
+- Studies to aid decision making
+- Studies to aid management strategies
+- Implementation research
+- Interventions research
+- Observational research
+- Epidemiology studies
+- Antimicrobial stewardship
+- Research on optimal use and uptake of products
+- Research to inform clinical practice & guideline development
+- Infection prevention and control (IPC)
+- Clinical, veterinary, or farming practice optimization
+- Disease management programs
+- Evidence-based guidelines and policies for IPC
+- Research on access and availability of AMR
+- Infection-reducing technologies research
+- AMR surveillance
+- Population-level analysis of disease surveillance or monitoring
+- Antimicrobial consumption/usage analysis
+- Resistance trends/development/susceptibility analysis
+- Specific tools for collection, management, and analysis of AMR
+- Behavior change interventions
+- Economic analyses in healthcare
+- Impact studies of external factors
+- Environmental impact study
+- In silico modeling research
+- Optimization of processes in wastewater treatment plants
+- Epidemiology studies in defined populations
+- Research on determinants of health and disease conditions
+- Environmental epidemiology
+- Occupational epidemiology
+
+---
+
+Research Area: Other Products (5500)
+Keywords:
+- Biocides
+- Antiseptics
+- Disinfectants
+- Biofilm prevention materials
+- Wound care products
+- Anti-adhesion products
+- Medical devices
+- Health monitoring technologies
+- Animal sensors
+- External applications
+- Topical applications
+
+---
+
+Research Area: Policy (7100)
+Keywords:
+- Policy development
+- Health technology assessment
+- Impact of care services and improvement
+- Policy proposals
+- Regulatory research
+- Stakeholder engagement
+- Healthcare services impact
+- Economic modeling in health policy
+- Economic impact of national health programs
+
+---
+
+Research Area: Preventives Other (4200)
+Keywords:
+- Non-vaccine preventives
+- Immune modulators
+- Disease resistance breeding
+- Genome editing technologies for resistance
+- Trait-selective breeding of animals/plants
+- Anti-biofilm agents
+- Prophylactic treatments
+- General immune enhancement
+
+---
+
+Research Area: Preventives Other / Discovery (4210)
+Keywords:
+- Preventive discovery
+- Preventives early stage discovery
+- Preventive agent identification
+- Product characterization for preventives
+- Improvement of preventives
+- Early stages novel preventive agents discovery
+
+---
+
+Research Area: Preventives Other / Clinical Testing (4220)
+Keywords:
+- Preventive development
+- Preventive clinical trials
+- Phase 1-3 trials for preventives
+- Product label expansion for preventives
+- NDA submission for preventives
+
+---
+
+Research Area: Preventives Other / Approval & Post approval (4240)
+Keywords:
+- Preventive approval
+- Preventive market authorization
+- Preventive pharmacovigilance
+- Post-approval preventive studies
+- Preventive product optimization
+- Preventives regulatory requirements
+- Preventives post-authorization obligations
+
+---
+
+Research Area: Promotants (5600)
+Keywords:
+- Promotants
+- Probiotics
+- Prebiotics
+- Phytochemicals
+- Growth-promoting alternatives
+- Organic acids
+- Enzymes
+- Productivity enhancement
+- Health improvement without disease
+
+---
+
+Research Area: Therapeutics / Discovery (3100)
+Keywords:
+- Therapeutic discovery
+- TRL 4-5
+- Early stage discovery of alternatives (antibodies, fecal transplant therapy (FMT), bacteriophages, antimicrobial peptides, lysins, antitoxins, and immune modulators)
+- Early stage investigation of old or off-market antimicrobials
+- Early stage improvement of existing antimicrobials and therapies
+- Early stage combination therapies and dose optimization studies
+- Therapeutic target assessment & validation
+- Hit discovery process
+- Hit to lead
+- Lead identification
+- Hit identification
+- Lead optimization
+- Therapeutic target validation
+- Preclinical therapeutic testing
+- Investigational new drug (IND) submission
+- Novel antimicrobial agents
+
+---
+
+Research Area: Therapeutics / Clinical Testing (3200)
+Keywords:
+- TRL 6-8
+- Therapeutic clinical trials
+- Phase 1-3 trials for therapeutics
+- Product label expansion for therapeutics
+- Additional indications for therapeutic product
+- NDA (New Drug Application) submission
+
+---
+
+Research Area: Therapeutics / Approval & Post approval (3400)
+Keywords:
+- TRL 9
+- Therapeutic approval after phase 3 clinical trials
+- Therapeutic market authorization
+- Therapeutic pharmacovigilance
+- Post-approval therapeutic studies
+- Therapeutic optimization
+- Therapeutic guidelines
+- Therapeutic regulatory requirements
+- Therapeutic post-authorization obligations
+
+---
+
+Research Area: Vaccines / Discovery (4110)
+Keywords:
+- Vaccine discovery
+- Antigen identification
+- Adjuvant discovery
+- Vaccine carrier/delivery system discovery
+- Vaccine component identification
+- Vaccine component characterization
+- Vaccine component optimization
+- Vaccine immunogenicity
+- Vaccine component selection
+- Cellular immune response
+- Humoral immune response
+- Adaptive immunity
+- Protective immune responses testing
+
+---
+
+Research Area: Vaccines / Clinical Testing (4120)
+Keywords:
+- Vaccine clinical trials
+- Phase 1-3 trials for vaccines
+- Vaccine label expansion
+- NDA submission for vaccines
+
+---
+
+Research Area: Vaccines / Approval & Post approval (4140)
+Keywords:
+- Vaccine approval
+- Vaccine market authorization
+- Vaccine pharmacovigilance
+- Post-approval vaccine studies
+- Vaccine optimization
+- Vaccine guidelines
+- Vaccine regulatory requirements
+- Vaccine post-authorization obligations

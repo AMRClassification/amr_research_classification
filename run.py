@@ -13,7 +13,7 @@ if __name__ == "__main__":
     
     # Set up the Streamlit command
     streamlit_command = ["streamlit", "run", 
-                        os.path.join(app_dir, "app.py"),
+                        os.path.join(app_dir, "streamlit_app.py"),
                         "--server.address", "localhost",
                         "--server.port", "8501"]
     

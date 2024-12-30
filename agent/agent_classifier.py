@@ -1,5 +1,8 @@
 import os
 import sys
+import traceback
+import pandas as pd
+from typing import Dict, List, Tuple, Optional
 
 sys.path.insert(1, os.getcwd())
 
@@ -19,6 +22,16 @@ from utils.llm_call import call_llm
 from agent.schema import ClassificationState
 from agent.classifications.infectious_agent import map_less_relevant_infectious_agents_to_stain
 
+from agent.classifications.sector import classify_sector, validate_sector_classification
+from agent.classifications.research_area import (
+    classify_research_area, 
+    validate_therapeutics_classification,
+    validate_non_therapeutics_classification
+)
+from agent.classifications.infectious_agent import (
+    classify_infectious_agent,
+    validate_infectious_agent_classification
+)
 
 # Load environment variables
 load_dotenv()
@@ -31,29 +44,32 @@ def replace_reducer(existing_value, new_value):
 
 
 class Agent:
-    def __init__(self, model: str, num_runs: int = 5, threshold: float = 0.8, output_file: str = None):
-        """Initialize the agent with model and run parameters."""
+    def __init__(self, model: str, num_runs: int, threshold: float, output_file: str, eval_mode: bool = False):
+        """Initialize the agent with the specified parameters."""
         self.model = model
         self.num_runs = num_runs
         self.threshold = threshold
-        self.classification_stats = Counter()
-        self.output_file = output_file
+        self.eval_mode = eval_mode
         
-        # Initialize results DataFrame
-        self.results_df = pd.DataFrame(
-            columns=[
-                "Index",
-                "Id",
-                "Title",
-                "Abstract",
-                "Ground Truth",
-                "Prediction",
-                "Sector Overall Explanation",
-                "Research Area Overall Explanation",
-                "Infectious Agent Overall Explanation",
-                "Categorisation Time",
-            ]
-        )
+        # Set output file path based on mode
+        if eval_mode:
+            # For evaluation mode, save in results directory
+            os.makedirs("results", exist_ok=True)
+            self.output_file = os.path.join("results", output_file)
+        else:
+            # For app mode, use the provided path directly
+            self.output_file = output_file
+        
+        # Initialize results DataFrame with appropriate columns
+        if eval_mode:
+            self.results_df = pd.DataFrame(columns=[
+                "Index", "Id", "Title", "Abstract", "Ground Truth",
+                "Prediction", "Sector Explanation", "Research Area Explanation",
+                "Infectious Agent Explanation"
+            ])
+        else:
+            # For app mode, we'll update the input DataFrame directly
+            self.results_df = pd.DataFrame()  # Initialize empty DataFrame instead of None
 
         # Initialize workflow
         self._setup_workflow()
@@ -61,8 +77,6 @@ class Agent:
     def classify_sector(self, state: ClassificationState) -> Dict[str, Any]:
         """Classify the sector."""
         try:
-            from classifications.sector import classify_sector
-            
             result = classify_sector(
                 title=state["input"]["title"],
                 abstract=state["input"]["abstract"],
@@ -85,8 +99,6 @@ class Agent:
     def validate_sector(self, state: ClassificationState) -> Dict[str, Any]:
         """Validate the sector classification."""
         try:
-            from classifications.sector import validate_sector_classification
-            
             if not state.get("sector_result"):
                 return state
 
@@ -179,8 +191,6 @@ class Agent:
     def classify_research_area(self, state: ClassificationState) -> Dict[str, Any]:
         """Second step: Detailed classification based on preselected areas."""
         try:
-            from classifications.research_area import classify_research_area
-            
             result = classify_research_area(
                 title=state["input"]["title"],
                 abstract=state["input"]["abstract"],
@@ -216,7 +226,6 @@ class Agent:
             )
             
             if has_therapeutics:
-                from classifications.research_area import validate_therapeutics_classification
                 validation = validate_therapeutics_classification(
                     title=state["input"]["title"],
                     abstract=state["input"]["abstract"],
@@ -224,7 +233,6 @@ class Agent:
                     model=self.model
                 )
             else:
-                from classifications.research_area import validate_non_therapeutics_classification
                 validation = validate_non_therapeutics_classification(
                     title=state["input"]["title"],
                     abstract=state["input"]["abstract"],
@@ -291,8 +299,6 @@ class Agent:
             domain_name = "Research Area"
             uncertain_classification = f"0000 {domain_name} / Uncertain"
             
-            print(f"\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}")
-
             return {
                 "research_area_result": {
                     "research_area": [uncertain_classification],
@@ -324,8 +330,6 @@ class Agent:
     def classify_infectious_agent(self, state: ClassificationState) -> Dict[str, Any]:
         """Classify the infectious agent."""
         try:
-            from classifications.infectious_agent import classify_infectious_agent
-            
             result = classify_infectious_agent(
                 title=state["input"]["title"],
                 abstract=state["input"]["abstract"],
@@ -346,8 +350,6 @@ class Agent:
 
     def validate_infectious_agent(self, state: ClassificationState) -> Dict[str, Any]:
         """Validate infectious agent classification."""
-
-        from classifications.infectious_agent import validate_infectious_agent_classification
         
         if not state.get("infectious_agent_result"):
             return state
@@ -391,9 +393,6 @@ class Agent:
                     "current_step": "validate_infectious_agent"
                 }
         return state
-        # except Exception as e:
-        #     print(f"Error in infectious agent validation node: {e}")
-        #     return state
 
     def review_infectious_agent_validation(self, state: dict) -> dict:
         """Reviews the infectious agent validation explanation and determines next steps."""
@@ -416,8 +415,6 @@ class Agent:
             domain_name = "Infectious Agent"
             uncertain_classification = f"0000 {domain_name} / Uncertain"
             
-            print(f"\n\nUncertainty Analysis:\n{review['reason']}\n{review['analysis']}")
-
             return {
                 "infectious_agent_result": {
                     "infectious_agent": [uncertain_classification],
@@ -541,146 +538,148 @@ class Agent:
                     print(f"   {category}: {count} ({percentage:.2f}%)")
 
     def save_results(self):
-        """Save current results to Excel file."""
-        if self.output_file and not self.results_df.empty:
-            try:
-                self.results_df.to_excel(self.output_file, index=False)
-                print(f"\nResults saved to: {self.output_file}")
-            except Exception as e:
-                print(f"Error saving results to file: {e}")
+        """Save results to file."""
+        if self.eval_mode and self.results_df is not None:
+            self.results_df.to_excel(self.output_file, index=False)
 
-    def perform_classification(self, index: int, title: str, abstract: str, original_id: str, ground_truth: str) -> pd.DataFrame:
-        """Run multiple classification attempts and aggregate results."""
-        # Check minimum content length
-        if not len(str(title) + str(abstract)) > 500:
-            print(f"Entry {index} skipped: Content length below minimum threshold")
-            return self.results_df
+    def perform_classification(self, index: int, title: str, abstract: str, original_id: str = None, 
+                             ground_truth: str = None, input_df: pd.DataFrame = None) -> pd.DataFrame:
+        """Run classification and update results appropriately."""
+        try:
+            # Check for None or empty values
+            if title is None or abstract is None:
+                print(f"Entry {index} skipped: Missing title or abstract")
+                return input_df if not self.eval_mode else self.results_df
+            
+            # Convert to string and check minimum content length
+            title = str(title) if not pd.isna(title) else ""
+            abstract = str(abstract) if not pd.isna(abstract) else ""
         
-        sector_results = []
-        research_area_results = []
-        infectious_agent_results = []
-        
-        print(f"\nPerforming {self.num_runs} classification runs for entry {index}")
-        successful_runs = 0
-        
-        for run in range(self.num_runs):
-            try:
-                # Create a fresh input state for each run
-                input_state = {
-                    "title": str(title),
-                    "abstract": str(abstract),
-                    "original_id": str(original_id),
-                    "ground_truth": str(ground_truth)
+            if not len(title + abstract) > 500:
+                print(f"Entry {index} skipped: Content length below minimum threshold")
+                return input_df if not self.eval_mode else self.results_df
+            
+            sector_results = []
+            research_area_results = []
+            infectious_agent_results = []
+            
+            print(f"\nPerforming {self.num_runs} classification runs for entry {index}")
+            successful_runs = 0
+            
+            for run in range(self.num_runs):
+                try:
+                    # Create a fresh input state for each run
+                    input_state = {
+                        "title": title,
+                        "abstract": abstract,
+                        "original_id": str(original_id) if original_id is not None else str(index),
+                        "ground_truth": str(ground_truth) if ground_truth is not None else None
+                    }
+
+                    # Create a fresh initial state for each run
+                    initial_state = {
+                        "index": index,
+                        "input": input_state,
+                        "classifications": [],
+                        "results_df": self.results_df,
+                        "successful_entries": len(self.results_df),
+                        # Initialize empty results for each domain
+                        "sector_result": {},
+                        "research_area_result": {},
+                        "infectious_agent_result": {},
+                        # Initialize empty next states
+                        "sector_next": [],
+                        "research_area_next": [],
+                        "infectious_agent_next": []
+                    }
+
+                    final_state = self.app.invoke(initial_state)
+                    
+                    # Collect results from this run, ensuring list format
+                    if "sector_result" in final_state:
+                        result = final_state["sector_result"]
+                        if isinstance(result.get("sector"), str):
+                            result["sector"] = [result["sector"]]
+                        sector_results.append(result)
+                        
+                    if "research_area_result" in final_state:
+                        result = final_state["research_area_result"]
+                        if isinstance(result.get("research_area"), str):
+                            result["research_area"] = [result["research_area"]]
+                        research_area_results.append(result)
+                        
+                    if "infectious_agent_result" in final_state:
+                        result = final_state["infectious_agent_result"]
+                        if isinstance(result.get("infectious_agent"), str):
+                            result["infectious_agent"] = [result["infectious_agent"]]
+                        infectious_agent_results.append(result)
+                    
+                    successful_runs += 1
+
+                    print("-" * 50)
+                    
+                except Exception as e:
+                    print(f"\nError in run {run + 1}:")
+                    print(traceback.format_exc())
+                    continue
+
+            if successful_runs > 0:
+                # Compute averages with proper formatting
+                sector_avg = compute_average(sector_results, "sector", self.threshold)
+                research_area_avg = compute_average(research_area_results, "research_area", self.threshold)
+                infectious_agent_avg = compute_average(infectious_agent_results, "infectious_agent", self.threshold)
+
+                # Format predictions consistently
+                prediction_parts = []
+                if sector_avg[0]:
+                    prediction_parts.extend(sector_avg[0])
+                if research_area_avg[0]:
+                    prediction_parts.extend(research_area_avg[0])
+                if infectious_agent_avg[0]:
+                    prediction_parts.extend(infectious_agent_avg[0])
+
+                # Create results dictionary
+                results = {
+                    "Prediction": "\n".join(filter(None, prediction_parts)),
+                    "Sector Explanation": sector_avg[1],
+                    "Research Area Explanation": research_area_avg[1],
+                    "Infectious Agent Explanation": infectious_agent_avg[1]
                 }
 
-                # Create a fresh initial state for each run
-                initial_state = {
-                    "index": index,
-                    "input": input_state,
-                    "classifications": [],
-                    "results_df": self.results_df,
-                    "successful_entries": len(self.results_df),
-                    # Initialize empty results for each domain
-                    "sector_result": {},
-                    "research_area_result": {},
-                    "infectious_agent_result": {},
-                    # Initialize empty next states
-                    "sector_next": [],
-                    "research_area_next": [],
-                    "infectious_agent_next": []
+                # Update DataFrame with results
+                if not self.eval_mode and input_df is not None:
+
+                    for col, value in results.items():
+                        input_df.at[index, col] = value
+                
+                    return input_df
+
+            if self.eval_mode:
+                # Create new row for evaluation results
+                eval_row = {
+                    "Index": index,
+                    "Id": str(original_id),
+                    "Title": str(title),
+                    "Abstract": str(abstract),
+                    "Ground Truth": str(ground_truth),
+                    **results
                 }
+                new_row = pd.DataFrame([eval_row])
+                self.results_df = pd.concat([self.results_df, new_row], ignore_index=True)
+                self.save_results()
+                return self.results_df
+            else:
+                # Update the input DataFrame directly
+                if input_df is not None:
+                    for col, value in results.items():
+                        input_df.at[index, col] = value
+                    input_df.to_excel(self.output_file, index=False)
+                    return input_df
 
-                final_state = self.app.invoke(initial_state)
-                
-                # Collect results from this run, ensuring list format
-                if "sector_result" in final_state:
-                    result = final_state["sector_result"]
-                    if isinstance(result.get("sector"), str):
-                        result["sector"] = [result["sector"]]
-                    sector_results.append(result)
-                    
-                if "research_area_result" in final_state:
-                    result = final_state["research_area_result"]
-                    if isinstance(result.get("research_area"), str):
-                        result["research_area"] = [result["research_area"]]
-                    research_area_results.append(result)
-                    
-                if "infectious_agent_result" in final_state:
-                    result = final_state["infectious_agent_result"]
-                    if isinstance(result.get("infectious_agent"), str):
-                        result["infectious_agent"] = [result["infectious_agent"]]
-                    infectious_agent_results.append(result)
-                
-                successful_runs += 1
-
-                print("-" * 50)
-                
-            except Exception as e:
-                print(f"Error in run {run + 1}: {e}")
-                continue
-
-        # Compute averages with proper formatting
-        sector_avg = compute_average(sector_results, "sector", self.threshold)
-        research_area_avg = compute_average(research_area_results, "research_area", self.threshold)
-        infectious_agent_avg = compute_average(infectious_agent_results, "infectious_agent", self.threshold)
-
-        # Format predictions consistently
-        prediction_parts = []
-        if sector_avg[0]:
-            prediction_parts.extend(sector_avg[0])
-        if research_area_avg[0]:
-            prediction_parts.extend(research_area_avg[0])
-        if infectious_agent_avg[0]:
-            prediction_parts.extend(infectious_agent_avg[0])
-
-        # Create new row with properly formatted data
-        new_data = {
-            "Index": index,
-            "Id": str(original_id),
-            "Title": str(title),
-            "Abstract": str(abstract),
-            "Ground Truth": str(ground_truth),
-            "Prediction": "\n".join(filter(None, prediction_parts)),
-            "Sector Overall Explanation": sector_avg[1],
-            "Research Area Overall Explanation": research_area_avg[1],
-            "Infectious Agent Overall Explanation": infectious_agent_avg[1],
-            "Categorisation Time": 0
-        }
-
-        # Update results DataFrame
-        new_row = pd.DataFrame([new_data])
-        self.results_df = pd.concat([self.results_df, new_row], ignore_index=True)
-
-        # Save results after each successful classification
-        self.save_results()
-
-        # # Print statistics for this entry
-        # self.print_classification_stats(successful_runs)
-
-        
-        return self.results_df
-
-    def get_results(self) -> pd.DataFrame:
-        """Get the current results DataFrame."""
-        return self.results_df
-
-    def clear_results(self):
-        """Clear the results DataFrame and statistics."""
-        self.results_df = pd.DataFrame(
-            columns=[
-                "Index",
-                "Id",
-                "Title",
-                "Abstract",
-                "Ground Truth",
-                "Prediction",
-                "Sector Overall Explanation",
-                "Research Area Overall Explanation",
-                "Infectious Agent Overall Explanation",
-                "Categorisation Time",
-            ]
-        )
-        self.classification_stats.clear()
+        except Exception as e:
+            print("Full error traceback in perform_classification:")
+            print(traceback.format_exc())
+            return input_df if not self.eval_mode else self.results_df
 
     def combined_validation(self, state: ClassificationState) -> ClassificationState:
         """Perform final validation of all classifications."""

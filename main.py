@@ -25,7 +25,7 @@ def perform_classification(
     output_file=None,
 ):
     # Validate indices
-    if start_index >= len(df):
+    if start_index >= len(df) or start_index < 0:
         raise ValueError("Start index is beyond the dataframe length")
 
     # Initialize tracking variables
@@ -111,10 +111,10 @@ def perform_classification(
             # Compute average results
 
 
-            sector_avg = compute_average(sector_results, "sector")
-            research_area_avg = compute_average(research_area_results, "research_area")
+            sector_avg = compute_average(sector_results, "sector", threshold)
+            research_area_avg = compute_average(research_area_results, "research_area", threshold)
             infectious_agent_avg = compute_average(
-                infectious_agent_results, "infectious_agent"
+                infectious_agent_results, "infectious_agent", threshold
             )
 
             # Only add to results_df if classification was successful

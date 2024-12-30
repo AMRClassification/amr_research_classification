@@ -9,10 +9,6 @@ Sector Domain:
 Research Area Domain:
 ------------------------------
 
-ADDITIONAL PREDICTIONS:
-Count: 1
-IDs: (Row: 3, ID: 930)
-
 
 Infectious Agent Domain:
 ------------------------------

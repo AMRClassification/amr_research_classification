@@ -14,14 +14,15 @@ from utils.utils import get_categories, extract_json
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize OpenAI client
-openai_client = OpenAI()
-openai_client.api_key = os.getenv("OPENAI_API_KEY")
+def get_openai_client():
+    """Initialize and return OpenAI client with API key."""
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    return client
 
-# Initialize Google client
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-gemini_model = genai.GenerativeModel("gemini-pro")
-
+def get_google_client():
+    """Initialize and return Google client with API key."""
+    genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+    return genai
 
 def classify_research(
     prompt: str, model: str, classification_type: str
@@ -38,7 +39,8 @@ def classify_research(
     return validated
 
 
-def call_llm(prompt: str, model: str) -> dict:
+def call_llm(model: str, messages: list, temperature: float = 0.0) -> str:
+    """Call the appropriate LLM based on the model name."""
     try:
         if model.startswith("gemini"):
             return call_gemini(prompt)
@@ -65,7 +67,8 @@ def call_openai(prompt: str, model: str) -> dict:
         )
         kwargs["response_format"] = {"type": "json_object"}
 
-    completion = openai_client.chat.completions.create(**kwargs)
+    client = get_openai_client()
+    completion = client.chat.completions.create(**kwargs)
     
     if model == "o1-mini":
         # Parse the o1-mini format
@@ -100,7 +103,8 @@ def call_gemini(prompt: str) -> dict:
         IMPORTANT: Your response must be valid JSON. Wrap your entire response in a JSON object.
         """
 
-        response = gemini_model.generate_content(formatted_prompt)
+        client = get_google_client()
+        response = client.generate_content(formatted_prompt)
 
         # Extract JSON from the response
         content = response.text

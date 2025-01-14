@@ -32,7 +32,6 @@ from agent.classifications.infectious_agent import (
     classify_infectious_agent,
     validate_infectious_agent_classification
 )
-from agent.classifications.human_therapeutics import check_human_therapeutics
 
 # Load environment variables
 load_dotenv()
@@ -442,51 +441,11 @@ class Agent:
                 "infectious_agent_next": ["combined_validation"]
             }
 
-    def check_human_therapeutics(self, state: ClassificationState) -> Dict[str, Any]:
-        """Initial screening to check if the content is undoubtably about human therapeutics."""
-        try:
-            result = check_human_therapeutics(
-                title=state['input']['title'],
-                abstract=state['input']['abstract'],
-                model=self.model
-            )
-            
-            if not result:
-                print("Invalid screening result format")
-                return state
-            
-            print("Initial check result:", result)
-            
-            if not result["is_human_therapeutics"]:
-                uncertain_results = {
-                    "sector_result": {
-                        "sector": ["0000 Sector / Uncertain"],
-                        "explanation": f"Not clearly human therapeutics related.\n\nAnalysis:\n{result['explanation']}"
-                    },
-                    "research_area_result": {
-                        "research_area": ["0000 Research Area / Uncertain"],
-                        "explanation": f"Not clearly human therapeutics related.\n\nAnalysis:\n{result['explanation']}"
-                    },
-                    "infectious_agent_result": {
-                        "infectious_agent": ["0000 Infectious Agent / Uncertain"],
-                        "explanation": f"Not clearly human therapeutics related.\n\nAnalysis:\n{result['explanation']}"
-                    },
-                    "skip_classification": True
-                }
-                return uncertain_results
-            
-            return {**state, "skip_classification": False}
-            
-        except Exception as e:
-            print(f"Error in human therapeutics screening: {e}")
-            return state
-
     def _setup_workflow(self):
         """Set up the classification workflow."""
         workflow = StateGraph(ClassificationState)
 
         # Add nodes
-        # workflow.add_node("check_human_therapeutics", self.check_human_therapeutics)
         workflow.add_node("classify_sector", self.classify_sector)
         workflow.add_node("validate_sector", self.validate_sector)
         workflow.add_node("review_sector_validation", self.review_sector_validation)

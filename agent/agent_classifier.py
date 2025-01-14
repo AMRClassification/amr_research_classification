@@ -32,6 +32,7 @@ from agent.classifications.infectious_agent import (
     classify_infectious_agent,
     validate_infectious_agent_classification
 )
+from agent.classifications.human_therapeutics import check_human_therapeutics
 
 # Load environment variables
 load_dotenv()
@@ -441,12 +442,51 @@ class Agent:
                 "infectious_agent_next": ["combined_validation"]
             }
 
+    def check_human_therapeutics(self, state: ClassificationState) -> Dict[str, Any]:
+        """Initial screening to check if the content is undoubtably about human therapeutics."""
+        try:
+            result = check_human_therapeutics(
+                title=state['input']['title'],
+                abstract=state['input']['abstract'],
+                model=self.model
+            )
+            
+            if not result:
+                print("Invalid screening result format")
+                return state
+            
+            print("Initial check result:", result)
+            
+            if not result["is_human_therapeutics"]:
+                uncertain_results = {
+                    "sector_result": {
+                        "sector": ["0000 Sector / Uncertain"],
+                        "explanation": f"Not clearly human therapeutics related.\n\nAnalysis:\n{result['explanation']}"
+                    },
+                    "research_area_result": {
+                        "research_area": ["0000 Research Area / Uncertain"],
+                        "explanation": f"Not clearly human therapeutics related.\n\nAnalysis:\n{result['explanation']}"
+                    },
+                    "infectious_agent_result": {
+                        "infectious_agent": ["0000 Infectious Agent / Uncertain"],
+                        "explanation": f"Not clearly human therapeutics related.\n\nAnalysis:\n{result['explanation']}"
+                    },
+                    "skip_classification": True
+                }
+                return uncertain_results
+            
+            return {**state, "skip_classification": False}
+            
+        except Exception as e:
+            print(f"Error in human therapeutics screening: {e}")
+            return state
 
     def _setup_workflow(self):
         """Set up the classification workflow."""
         workflow = StateGraph(ClassificationState)
 
         # Add nodes
+        # workflow.add_node("check_human_therapeutics", self.check_human_therapeutics)
         workflow.add_node("classify_sector", self.classify_sector)
         workflow.add_node("validate_sector", self.validate_sector)
         workflow.add_node("review_sector_validation", self.review_sector_validation)
@@ -461,37 +501,25 @@ class Agent:
 
         workflow.add_node("combined_validation", self.combined_validation)
 
+
         # Parallel sector classification path
         workflow.add_edge(START, "classify_sector")
         workflow.add_edge("classify_sector", "validate_sector")
         workflow.add_edge("validate_sector", "review_sector_validation")
-        workflow.add_conditional_edges(
-            "review_sector_validation",
-            lambda x: x["sector_next"],
-            ["classify_sector", "combined_validation"]
-        )
+        workflow.add_edge("review_sector_validation", "combined_validation")
 
         # Parallel research area path
         workflow.add_edge(START, "classify_research_area")
         workflow.add_edge("classify_research_area", "validate_research_area")
         workflow.add_edge("validate_research_area", "review_research_area_validation")
-        workflow.add_conditional_edges(
-            "review_research_area_validation",
-            lambda x: x["research_area_next"],
-            ["classify_research_area", "combined_validation"]
-        )
+        workflow.add_edge("review_research_area_validation", "combined_validation")
 
         # Parallel infectious agent path
         workflow.add_edge(START, "classify_infectious_agent")
         workflow.add_edge("classify_infectious_agent", "validate_infectious_agent")
         workflow.add_edge("validate_infectious_agent", "review_infectious_agent_validation")
-        workflow.add_conditional_edges(
-            "review_infectious_agent_validation",
-            lambda x: x["infectious_agent_next"],
-            ["classify_infectious_agent", "combined_validation"]
-        )
+        workflow.add_edge("review_infectious_agent_validation", "combined_validation")
 
-        # Final steps
         workflow.add_edge("combined_validation", END)
 
         self.app = workflow.compile()

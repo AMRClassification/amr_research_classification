@@ -202,7 +202,7 @@ Validation Result: {validation_result}
    - Lack of explicit agent information
 
 2. Consider these rules in case the title/abstract doesn't include a explicitly mentioned infectious agent:
-      a. For bacteria without specified type:
+   a. For bacteria without specified type:
       - If bacteria are mentioned without indicating Gram status, classify as:
          - "1500 Infectious Agent / Bacteria / Bacteria / Not Specified_Bacteria"
       - Similarly use corresponding "Not Specified" classifications for other unspecified categories
@@ -249,3 +249,147 @@ Where:
 
 Only classify as uncertain if the argumentation of the validation is unclear or wrong, or if the title/abstract are ambigious in terms of the correct answer
 """
+
+
+#---------------------------------------------------------------------------------------------------
+
+
+def get_mention_check_prompt(title: str, abstract: str) -> str:
+    return f"""Given the following title and abstract, determine if it explicitly mentions any infectious agents from the following list:
+
+Title: {title}
+Abstract: {abstract}
+
+
+Infectious Agents: 
+{infectious_agent_options}
+
+Only add the infectious agents for which one of the following is true:
+- the infectious agent is explicitly mentioned in the title/abstract
+- in case the research is focused on ESKAPE, include all of the following infectious agents in the classification:
+    - Enterococcus faecium (Gram positive)
+    - Staphylococcus aureus (Gram positive) 
+    - Klebsiella pneumoniae (Gram negative)
+    - Acinetobacter baumannii (Gram negative)
+    - Pseudomonas aeruginosa (Gram negative)
+    - Enterobacter species (Gram negative)
+  - if only the gram-negative or gram-positive category of ESKAPE is mentioned, include all of the infectious agents in the respective category
+- in case the research mentions a medicine/treatment and that treatment is focused only on a specific infectious agent, include that agent in the classification
+- infectious agents that are paraphrased by words like antipseudomonal, etc.
+
+
+Don't come up with infectious agents that are not mentioned in the title/abstract.
+
+Respond in JSON format:
+{{
+    "has_infectious_agent": boolean,
+    "found_agents": [list of exactly matching infectious agents from the provided list; for each one use the full string as it is in the list],
+    "mentions": [list of any mentions in the text by giving the relevant sentence snippet for the found_agents which includes an explicit mention of the infectious agent],
+    "explanation": "Detailed explanation of your decision and which agents were found and where in the text"
+}}"""
+
+def get_example_check_prompt(title: str, abstract: str, agent: str) -> str:
+    return f"""Analyze how the infectious agent '{agent}' is mentioned in the text and categorize it based on the following criteria:
+
+Title: {title}
+Abstract: {abstract}
+
+Categorization Rules:
+1. Consider it as an example/related research if:
+   - It's preceded by phrases like "such as", "e.g.", "for example", "including", indicating that they are only examples of a larger group 
+   Examples:
+    - examples of the Enterobacteriaceae family are mentioned, but the research is focused on the whole of the Enterobacteriaceae family
+    - examples of the gram-negative bacteria are mentioned, but the research is focused on the whole of the gram-negative bacteria
+    - examples of the gram-positive bacteria are mentioned, but the research is focused on the whole of the gram-positive bacteria
+    - examples of the ESKAPE agents are mentioned, but the research is focused on the whole of the ESKAPE agents
+
+   - It's mentioned only in context of other research or background
+   - It's not discussed in detail in the main research findings
+
+2. Consider it as part of the main research if:
+   - It's mentioned as being the research target of the research
+   - It keeps recurring throughout the text, especially towards the end
+   - It's discussed in detail in the research findings
+   - It's mentioned without example phrases and is central to the research
+   - It appears in the methodology or results section
+
+Note: If an agent fits both categories (example AND recurring/detailed discussion), 
+categorize it as part of the main research.
+
+
+Not Specified Categories for found_group:
+{{
+    "Bacteria": "1500 Infectious Agent / Bacteria / Bacteria / Not Specified_Bacteria",
+    "Fungus": "1601 Infectious Agent / Fungus / Fungus / Not Specified_Fungus", 
+    "Parasite": "1700 Infectious Agent / Parasite / Parasite / Not Specified_Parasite",
+    "Protozoa": "1712 Infectious Agent / Parasite / Protozoa / Not Specified_Protozoa",
+    "Helminth": "1722 Infectious Agent / Parasite / Helminth / Not Specified_Helminth",
+    "Virus": "1801 Infectious Agent / Virus / Virus / Not Specified_Virus",
+}}
+
+
+Respond in JSON format:
+{{
+    "agent_classification": "example_or_related" | "main_research",
+    "is_example": boolean,
+    "is_from_related_research": boolean,
+    "is_recurringly_mention": boolean,
+
+    "mentions": [list of any mentions in the text by giving the relevant sentence snippet for the agent_classificaiton],
+    "found_group": if the infectious agent is mentioned as an example of a larger group, the full string of the Not Specified category of the respective larger group,
+    "explanation": "Justification of the categorization decision and which specific mention(s) are used as evidence"
+}}"""
+
+def get_target_check_prompt(title: str, abstract: str, agent: str) -> str:
+    return f"""Determine if the infectious agent '{agent}' is explicitly mentioned as the target of the treatment or discovery being developed in this research.
+
+Title: {title}
+Abstract: {abstract}
+
+Analysis Rules:
+1. Consider it a target if:
+   - It's explicitly mentioned as the target of the treatment/therapy
+   - The research aims to develop something specifically against this agent
+   - The conclusions or results discuss effectiveness against this agent
+   - It's clearly the focus of the therapeutic development
+   - It's specific name is continuously mentioned in the text (e.g. "E. coli" is continuously mentioned in the text)
+
+2. Consider it uncertain if:
+   - It's mentioned but not clearly as a treatment target
+   - It's part of the research but not specifically targeted
+   - The relationship to the treatment is ambiguous
+   - It's only mentioned in methodology without clear targeting
+   - It is mentioned as an example or related research
+
+
+Look for phrases like:
+- "targeting [agent]"
+- "treatment against [agent]"
+- "effective against [agent]"
+- "designed to combat [agent]"
+- "therapy for [agent]"
+
+Respond in JSON format:
+{{
+    "is_target": boolean,
+    "target_phrases": [list of phrases indicating it's a target],
+    "target_context": [list of relevant context showing targeting],
+    "confidence": "high" | "medium" | "low",
+    "explanation": "Detailed explanation of why this is or isn't considered a target"
+}}"""
+
+
+
+
+
+# Consider these rules:
+#     "Other": "1900 Infectious Agent / Other / Other_Other",
+#     "Not Applicable": "1902 Infectious Agent / Not Applicable / Not Applicable",
+#     "Not Specified": "1901 Infectious Agent / Not Specified / Not Specified_InfectiousAgent"
+
+#    For unspecified infectious agents:
+#       - If research relates to infectious agents but the category is not mentioned, classify as:
+#          - "1901 Infectious Agent / Not Specified / Not Specified_InfectiousAgent"
+#    For non-infectious agent research:
+#       - If research has no relation to infectious agents, classify as:
+#          - "1902 Infectious Agent / Not Applicable / Not Applicable"

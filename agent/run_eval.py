@@ -15,7 +15,7 @@ from agent_classifier import Agent
 
 def main():
     # Load your data
-    file_name = "Human_Therapeutics_1060"
+    file_name = "4. Data_Dynamic Dashboard_test_19032024"
     file_path = f"assets/{file_name}.xlsx"
 
     try:
@@ -26,9 +26,9 @@ def main():
         return
 
     # Parameters
-    start_index = 900
-    num_entries = 2
-    num_runs = 1
+    start_index = 13468
+    num_entries = 20
+    num_runs = 5
     required_consistent = 4  # Number of required consistent results
     
     required_consistent = min(required_consistent, num_runs)

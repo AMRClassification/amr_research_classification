@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import List, Union
 from utils.pydantic.sector import SectorClassificationResult
-from utils.research_area import ResearchAreaClassificationResult
+from utils.pydantic.research_area import ResearchAreaClassificationResult
 from utils.pydantic.infectious_agent import InfectiousAgentClassificationResult
 from utils.utils import get_categories, extract_json
 
@@ -39,7 +39,7 @@ def classify_research(
     return validated
 
 
-def call_llm(model: str, messages: list, temperature: float = 0.0) -> str:
+def call_llm(prompt: str, model: str) -> str:
     """Call the appropriate LLM based on the model name."""
     try:
         if model.startswith("gemini"):
@@ -87,7 +87,7 @@ def call_openai(prompt: str, model: str) -> dict:
                 }
         else:
             raise json.JSONDecodeError("No JSON object found", content, 0)
-        
+        yxc
 
         return parsed_result
     else:

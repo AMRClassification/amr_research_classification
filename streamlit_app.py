@@ -20,17 +20,21 @@ def validate_api_key(api_key):
 def main():
     st.title("AMR Research Classification Tool")
     
-    # Initialize session state for results DataFrame if it doesn't exist
+    # Initialize session state variables
     if 'results_df' not in st.session_state:
         st.session_state.results_df = None
+    if 'output_file' not in st.session_state:
         st.session_state.output_file = None
+    if 'current_index' not in st.session_state:
         st.session_state.current_index = None
+    if 'progress' not in st.session_state:
         st.session_state.progress = 0
+    if 'is_running' not in st.session_state:
         st.session_state.is_running = False
-    
-    # Initialize session state for DataFrame if it doesn't exist
     if 'df' not in st.session_state:
         st.session_state.df = None
+    if 'agent' not in st.session_state:
+        st.session_state.agent = None
     
     # Sidebar configuration
     st.sidebar.header("Configuration")
@@ -52,7 +56,7 @@ def main():
     # Model selection
     model = st.sidebar.selectbox(
         "Select Model",
-        ["gpt-4o-mini", "o1-mini", "gemini-1.5-flash", "gemini-1.5-pro"],
+        ["gpt-4o-mini", "o1-mini"],
         index=0,
         disabled=st.session_state.is_running
     )
@@ -152,13 +156,19 @@ def main():
             
             if not st.session_state.is_running:
                 if col1.button("Start Classification"):
-                    # Clear previous results when starting new classification
-                    st.session_state.results_df = None
-                    st.session_state.output_file = None
-                    st.session_state.current_index = None
+                    # Initialize agent with current parameters
+                    st.session_state.agent = Agent(
+                        model=model,
+                        num_runs=num_runs,
+                        threshold=threshold,
+                        output_file=st.session_state.output_file,
+                        eval_mode=False  # Specify app mode
+                    )
+                    # Reset all state variables
+                    st.session_state.current_index = start_index
                     st.session_state.progress = 0
-                    st.session_state.agent = None
-                    st.session_state.is_running = True  # Set running state before rerun
+                    st.session_state.is_running = True
+                    st.session_state.last_entry = None  # Add this to track the most recent entry
                     st.rerun()
             else:
                 # Add a running indicator and stop button
@@ -183,24 +193,21 @@ def main():
                 st.session_state.output_file = f"{model_abbreviation}_{uploaded_file.name.split('.')[0]}_{start_index}_{num_entries}_{timestamp}.xlsx"
             
             # Show current results if they exist
-            if st.session_state.df is not None:  # Simplified condition
+            if st.session_state.df is not None:
                 st.subheader("Current Results")
                 
                 # Create a view of only the processed entries
-                if df is not None and st.session_state.current_index is not None:
+                if df is not None:
                     last_processed_index = st.session_state.current_index
                     if not st.session_state.is_running:
-                        # If finished, show all processed entries up to the last one
                         last_processed_index = min(start_index + num_entries, len(df))
                     
                     # Only show entries that have been processed
                     processed_entries = df.iloc[start_index:last_processed_index].copy()
-                    st.write(f"Number of processed entries: {len(processed_entries)}")
                     
                     # Only show entries that have predictions (non-empty)
                     processed_entries = processed_entries[processed_entries['Prediction'].notna() & 
                                                        (processed_entries['Prediction'] != '')]
-                    st.write(f"Number of entries with predictions: {len(processed_entries)}")
                     
                     if not processed_entries.empty:
                         # Show only Id, Title, Abstract, and Prediction
@@ -220,14 +227,16 @@ def main():
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
                         
-                        # Show the most recent entry in detail
-                        st.subheader("Most Recent Classification")
-                        last_entry = processed_entries.iloc[-1]
-                        st.markdown(f"**Index:** {start_index + len(processed_entries) - 1}")
-                        st.markdown(f"**ID:** {last_entry['Id']}")
-                        st.markdown(f"**Title:** {last_entry['Title']}")
-                        st.markdown(f"**Abstract:** {last_entry['Abstract'][:500]}...")
-                        st.markdown(f"**Prediction:**\n{last_entry['Prediction']}")
+                        # Show the most recent entry in detail only if we have a last entry and are running or just finished
+                        if st.session_state.is_running or (not st.session_state.is_running and st.session_state.last_entry is not None):
+                            st.subheader("Most Recent Classification")
+                            last_entry = processed_entries.iloc[-1]
+                            st.session_state.last_entry = last_entry  # Store the last entry
+                            st.markdown(f"**Index:** {start_index + len(processed_entries) - 1}")
+                            st.markdown(f"**ID:** {last_entry['Id']}")
+                            st.markdown(f"**Title:** {last_entry['Title']}")
+                            st.markdown(f"**Abstract:** {last_entry['Abstract'][:500]}...")
+                            st.markdown(f"**Prediction:**\n{last_entry['Prediction']}")
                     else:
                         st.info("No processed entries with predictions yet.")
                 else:
@@ -239,18 +248,6 @@ def main():
             
             # Start or continue classification if running
             if st.session_state.is_running:
-                # Initialize agent
-                if st.session_state.current_index is None:
-                    st.session_state.current_index = start_index
-                    agent = Agent(
-                        model=model,
-                        num_runs=num_runs,
-                        threshold=threshold,
-                        output_file=st.session_state.output_file,
-                        eval_mode=False  # Specify app mode
-                    )
-                    st.session_state.agent = agent
-                
                 # Process entry
                 if st.session_state.current_index < min(start_index + num_entries, len(df)):
                     try:

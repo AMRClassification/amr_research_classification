@@ -254,8 +254,45 @@ Only classify as uncertain if the argumentation of the validation is unclear or 
 #---------------------------------------------------------------------------------------------------
 
 
-def get_mention_check_prompt(title: str, abstract: str) -> str:
-    return f"""Given the following title and abstract, determine if it explicitly mentions any infectious agents from the following list:
+
+def get_mentions_group_prompt(title: str, abstract: str) -> str:
+    return f"""Given the following title and abstract, determine if it mentions any broad groups of infectious agents (bacteria, fungi, parasites, viruses).
+
+Title: {title}
+Abstract: {abstract}
+
+If any infectious agents from one of these groups are mentioned to be target of the research add the corresponding class to the found_groups list:
+{{
+    "Bacteria": "1500 Infectious Agent / Bacteria / Bacteria / Not Specified_Bacteria",
+    "Fungus": "1601 Infectious Agent / Fungus / Fungus / Not Specified_Fungus", 
+    "Parasite": "1700 Infectious Agent / Parasite / Parasite / Not Specified_Parasite",
+    "Protozoa": "1712 Infectious Agent / Parasite / Protozoa / Not Specified_Protozoa",
+    "Helminth": "1722 Infectious Agent / Parasite / Helminth / Not Specified_Helminth",
+    "Virus": "1801 Infectious Agent / Virus / Virus / Not Specified_Virus"
+}}
+
+Include all infectious agents groups that are mentioned as target of the research (e.g., "bacterial infections", "fungal pathogens") unless:
+1. the infectious agents are only mentioned as examples
+2. the infectious agents are only from related work but not part of this current research
+
+
+Only if has_groups is false, add the following in the "not_applicable_or_not_specified" field:
+- "not_applicable" -> the research is not related to any infectious agents
+- "not_specified" -> the research is related to infectious agents but it doesn't even mention the group
+
+Respond in JSON format:
+{{
+    "has_groups": boolean,
+    "found_groups": [list of the full classification strings for found broad groups],
+    "mentions": [list of relevant quotes from the text showing the group mentions],
+    "not_applicable_or_not_specified": "not_applicable" | "not_specified",
+    "explanation": "Detailed explanation of which groups were found and why"
+}}"""
+
+
+
+def get_mentions_infectious_agent_prompt(title: str, abstract: str) -> str:
+    return f"""Given the following title and abstract, determine if it explicitly mentions any infectious agents searated into listed_agents and unlisted_agents from the following list:
 
 Title: {title}
 Abstract: {abstract}
@@ -283,10 +320,16 @@ Don't come up with infectious agents that are not mentioned in the title/abstrac
 Respond in JSON format:
 {{
     "has_infectious_agent": boolean,
-    "found_agents": [list of exactly matching infectious agents from the provided list; for each one use the full string as it is in the list],
-    "mentions": [list of any mentions in the text by giving the relevant sentence snippet for the found_agents which includes an explicit mention of the infectious agent],
-    "explanation": "Detailed explanation of your decision and which agents were found and where in the text"
-}}"""
+    "listed_agents": [list of infectious agents that match exactly with the provided categories],
+    "unlisted_agents": [list of other infectious agents mentioned but not in the provided categories],
+    "mentions": [list of relevant quotes from the text showing the mentions],
+    "explanation": "Detailed explanation of your decision and which agents were found"
+}}
+
+Note: Separate agents into:
+1. listed_agents: Only agents that exactly match the provided categories
+2. unlisted_agents: Any other infectious agents mentioned that don't match the categories
+"""
 
 def get_example_check_prompt(title: str, abstract: str, agent: str) -> str:
     return f"""Analyze how the infectious agent '{agent}' is mentioned in the text and categorize it based on the following criteria:
@@ -305,6 +348,7 @@ Categorization Rules:
 
    - It's mentioned only in context of other research or background
    - It's not discussed in detail in the main research findings
+   - You are not sure if this is the infectious agent is directly adressed, and is not mentioned as an example for a larger group of infectious agents
 
 2. Consider it as part of the main research if:
    - It's mentioned as being the research target of the research
@@ -339,46 +383,6 @@ Respond in JSON format:
     "found_group": if the infectious agent is mentioned as an example of a larger group, the full string of the Not Specified category of the respective larger group,
     "explanation": "Justification of the categorization decision and which specific mention(s) are used as evidence"
 }}"""
-
-def get_target_check_prompt(title: str, abstract: str, agent: str) -> str:
-    return f"""Determine if the infectious agent '{agent}' is explicitly mentioned as the target of the treatment or discovery being developed in this research.
-
-Title: {title}
-Abstract: {abstract}
-
-Analysis Rules:
-1. Consider it a target if:
-   - It's explicitly mentioned as the target of the treatment/therapy
-   - The research aims to develop something specifically against this agent
-   - The conclusions or results discuss effectiveness against this agent
-   - It's clearly the focus of the therapeutic development
-   - It's specific name is continuously mentioned in the text (e.g. "E. coli" is continuously mentioned in the text)
-
-2. Consider it uncertain if:
-   - It's mentioned but not clearly as a treatment target
-   - It's part of the research but not specifically targeted
-   - The relationship to the treatment is ambiguous
-   - It's only mentioned in methodology without clear targeting
-   - It is mentioned as an example or related research
-
-
-Look for phrases like:
-- "targeting [agent]"
-- "treatment against [agent]"
-- "effective against [agent]"
-- "designed to combat [agent]"
-- "therapy for [agent]"
-
-Respond in JSON format:
-{{
-    "is_target": boolean,
-    "target_phrases": [list of phrases indicating it's a target],
-    "target_context": [list of relevant context showing targeting],
-    "confidence": "high" | "medium" | "low",
-    "explanation": "Detailed explanation of why this is or isn't considered a target"
-}}"""
-
-
 
 
 

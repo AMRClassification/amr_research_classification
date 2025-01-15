@@ -16,24 +16,30 @@ from langchain_core.messages import HumanMessage
 from utils.utils import get_categories, find_closest_category
 from utils.llm_call import call_llm
 from agent.classifications.prompts.infectious_agent_prompts import (
-    get_mention_check_prompt,
+    get_mentions_infectious_agent_prompt,
     get_example_check_prompt,
-    get_target_check_prompt
-)
+    get_mentions_group_prompt
+    )
 
 import traceback
 
 class InfectiousAgentState(TypedDict):
     """State object for infectious agent classification."""
+    
+    # Workflow
+    workflow_finished: bool
+
+    # Input
     title: str
     abstract: str
+
+    # Group check
+    found_groups: List[str]
+
+    # Mention check
     has_infectious_agent: bool
-    found_agents: List[str]
-    classifications: List[str]
-    current_agent: Optional[str]
-    is_explicitly_mentioned: bool
-    is_target: bool
-    keep_recurring: bool    
+    listed_agents: List[str]
+    unlisted_agents: List[str]
 
     # Example check
     example_agents: List[str]
@@ -44,7 +50,10 @@ class InfectiousAgentState(TypedDict):
     uncertain_agents: List[str]
     
     # Explanation tracking
+    classification: List[str]
     explanation: str
+
+
 
 def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
     """Creates the classification graph for infectious agents."""
@@ -52,11 +61,67 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
     # Initialize workflow graph
     workflow = StateGraph(InfectiousAgentState)
 
+
+    def check_mentions_group(state: InfectiousAgentState) -> Dict:
+        """Check if the abstract mentions any broad infectious agent groups."""
+        try:
+            result = call_llm(
+                get_mentions_group_prompt(
+                    title=state["title"],
+                    abstract=state["abstract"]
+                ),
+                model
+            )
+
+            if not result or "has_groups" not in result:
+                print("Invalid group check result format")
+                return {
+                    "has_groups": False,
+                    "found_groups": [],
+                    "explanation": "Error: Invalid response format from group check"
+                }
+            
+            explanation = (
+                "1. Groups Mentioned:\n"
+                f"Groups identified: {', '.join(result['found_groups']) if result['found_groups'] else 'None'}\n"
+                f"Reasoning: {result['explanation']}\n"
+                f"Supporting quotes: {', '.join(result['mentions']) if result.get('mentions') else 'None'}\n"
+            )
+            
+            if result["has_groups"]:
+                return {
+                    "workflow_finished": False,
+                    "has_groups": True,
+                    "found_groups": result.get("found_groups", []),
+                    "explanation": explanation 
+                }
+            else:
+                if result["not_applicable_or_not_specified"] == "not_applicable":   
+                    classification = "1902 Infectious Agent / Not Applicable / Not Applicable"
+                elif result["not_applicable_or_not_specified"] == "not_specified":
+                    classification = "1901 Infectious Agent / Not Specified / Not Specified_InfectiousAgent"
+
+                return {
+                    "workflow_finished": True,
+                    "has_groups": False,
+                    "found_groups": [],
+                    "explanation": explanation,
+                    "classification": classification
+                }
+                
+        except Exception:
+            print(f"Error in group check:\n{traceback.format_exc()}")
+            return {
+                "workflow_finished": True,
+                "classification": "",
+                "explanation": "Error: Failed to perform group check"
+            }
+
     def check_mentions_infectious_agent(state: InfectiousAgentState) -> Dict:
         """Check if the abstract mentions any infectious agents from the list."""
         try:
             result = call_llm(
-                get_mention_check_prompt(
+                get_mentions_infectious_agent_prompt(
                     title=state["title"],
                     abstract=state["abstract"]
                 ),
@@ -67,37 +132,58 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
                 print("Invalid initial check result format")
                 return {
                     "has_infectious_agent": False,
-                    "found_agents": [],
-                    "explanation": "Error: Invalid response format from initial check"
+                    "listed_agents": [],
+                    "unlisted_agents": [],
+                    "explanation": state["explanation"] + "\n\nError: Invalid response format from initial check",
                 }
-            # Print agents and their mentions
-            print("\nFound Agents and Mentions:")
-            if result["has_infectious_agent"] and result["found_agents"]:
-                print(f"\nAgent: {result['found_agents'][0]}")
-                print(f"Mention: {result['mentions'][0]}")
-            else:
-                print("No agents found")
-            print("-" * 80)
             
-            explanation = (
-                f"Initial Check:\n"
-                f"{'Found' if result['has_infectious_agent'] else 'No'} infectious agents in text.\n"
-                f"Agents found: {', '.join(result['found_agents']) if result['found_agents'] else 'None'}\n"
-                f"Analysis: {result['explanation']}"
+            # Build explanation for listed agents
+            listed_explanation = (
+                "\n2. Listed Infectious Agents:\n"
+                f"Found agents from predefined list: {', '.join(result['listed_agents']) if result['listed_agents'] else '-'}\n"
+                f"Context: {result.get('listed_agents_context', 'No context provided')}\n" if result['listed_agents'] else '\n'
+            )
+
+            # Build explanation for unlisted agents
+            unlisted_explanation = (
+                "\n3. Unlisted Infectious Agents:\n"
+                f"Found agents not in predefined list: {', '.join(result['unlisted_agents']) if result['unlisted_agents'] else '-'}\n"
+                f"Context: {result.get('unlisted_agents_context', 'No context provided')}\n" if result['unlisted_agents'] else '\n'
+            )
+
+            # Combine explanations
+            combined_explanation = (
+                state["explanation"] +  # Previous explanation from group check
+                listed_explanation +
+                unlisted_explanation +
+                f"\nAnalysis: {result['explanation']}"
             )
             
-            return {
-                "has_infectious_agent": result["has_infectious_agent"],
-                "found_agents": result["found_agents"],
-                "explanation": explanation
-            }
+            if result["has_infectious_agent"]:
+                return {
+                    "workflow_finished": False,
+                    "has_infectious_agent": True,
+                    "listed_agents": result.get("listed_agents", []),
+                    "unlisted_agents": result.get("unlisted_agents", []),
+                    "explanation": combined_explanation,
+                }
+            else:
+                classification = state["found_groups"]
+                return {
+                    "workflow_finished": True,
+                    "has_infectious_agent": False,
+                    "listed_agents": [],
+                    "unlisted_agents": [],
+                    "explanation": combined_explanation,
+                    "classification": classification,
+                }
                 
         except Exception:
             print(f"Error in initial infectious agent check:\n{traceback.format_exc()}")
             return {
-                "has_infectious_agent": False,
-                "found_agents": [],
-                "explanation": "Error: Failed to perform initial infectious agent check"
+                "workflow_finished": True,
+                "classification": "",
+                "explanation": state["explanation"] + "\n\nError: Failed to perform initial infectious agent check"
             }
 
     def check_example_and_recurring(state: InfectiousAgentState) -> Dict:
@@ -106,13 +192,13 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
         Also handles found groups and ensures unique entries.
         """
         try:
-            found_agents = state.get("found_agents", [])
+            listed_agents = state.get("listed_agents", [])
             example_agents = []
             research_agents = []
             found_group = []  # Use set to ensure uniqueness
             agent_explanations = []
 
-            for agent in found_agents:
+            for agent in listed_agents:
                 # Try up to 3 times to get a valid response
                 max_tries = 3
                 tries = 0
@@ -128,13 +214,13 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
                             ),
                             model
                         )
-                        print(f"\nAgent: {agent}")
-                        print(f"Classification: {result['agent_classification']}")
-                        print(f"Explanation: {result['explanation']}")
-                        print("Mentions:", 
-                              "\n  - " + "\n  - ".join(result['mentions'])
-                              if result['mentions'] else "None")
-                        print("-" * 80)
+                        # print(f"\nAgent: {agent}")
+                        # print(f"Classification: {result['agent_classification']}")
+                        # print(f"Explanation: {result['explanation']}")
+                        # print("Mentions:", 
+                        #       "\n  - " + "\n  - ".join(result['mentions'])
+                        #       if result['mentions'] else "None")
+                        # print("-" * 80)
 
                         if not result or "agent_classification" not in result:
                             print(f"Invalid example check result format for agent {agent}, attempt {tries + 1}")
@@ -162,14 +248,13 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
                     agent_explanations.append(f"'{agent}': Defaulted to research focus after failed attempts")
                     continue
 
-                # Handle found groups if present and agent is an example
-                if result["is_example"] and "found_group" in result and result["found_group"]:
-                    found_group.append(result["found_group"])
-                    agent_explanations.append(
-                        f"Found additional groups through example {agent}: {', '.join(result['found_group'])}"
-                    )
-
-                print(f"FOUND GROUPS: {found_group}")
+                # # Handle found groups if present and agent is an example
+                # if result["is_example"] and "found_group" in result and result["found_group"]:
+                #     found_group.append(result["found_group"])
+                #     agent_explanations.append(
+                #         f"Found additional groups through example {agent}: {', '.join(result['found_group'])}"
+                #     )
+                # print(f"FOUND GROUPS: {found_group}")
 
                 # Categorize agent based on result
                 if result["is_recurringly_mention"]:
@@ -182,94 +267,131 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
                     research_agents.append(agent)
                     agent_explanations.append(f"'{agent}': Research focus")
 
-            # Add found groups to research agents (ensuring uniqueness)
+            # # Add found groups to research agents (ensuring uniqueness)
+            # if not research_agents:
+            #     research_agents.extend(found_group)
+            #     research_agents = list(set(research_agents))  # Remove duplicates
+
+
+            # Process unlisted agents to determine if they are examples or research targets
+            unlisted_agents = state.get("unlisted_agents", [])
+            if unlisted_agents:
+                for unlisted_agent in unlisted_agents:
+                    max_tries = 3
+                    tries = 0
+                    valid_result = False
+                    while tries < max_tries and not valid_result:
+                        try:
+                            result = call_llm(
+                                get_example_check_prompt(
+                                    title=state["title"],
+                                    abstract=state["abstract"],
+                                    agent=unlisted_agent
+                                ),
+                                model
+                            )
+
+                            # Assert that an agent cannot be both recurring and an example/related research
+                            is_example_or_related = result["is_example"] or result["is_from_related_research"]
+                            assert not (result["is_recurringly_mention"] and is_example_or_related), \
+                                f"Agent {unlisted_agent} cannot be both recurring and an example/related research"
+
+                            valid_result = True
+
+                            # If it's a research target, add the "Other" classification for its type
+                            if result["is_recurringly_mention"]:
+                                # Bacteria
+                                if "bacteria" in result["found_group"].lower() and "gram negative" in result["found_group"].lower():
+                                    research_agents.append("1503 Infectious Agent / Bacteria / Gram negative / Other Gram negative")
+                                elif "bacteria" in result["found_group"].lower() and "gram positive" in result["found_group"].lower():
+                                    research_agents.append("1513 Infectious Agent / Bacteria / Gram positive / Other Gram positive")
+                                elif "bacteria" in result["found_group"].lower() and "gram variable" in result["found_group"].lower():
+                                    research_agents.append("1523 Infectious Agent / Bacteria / Gram variable / Other Gram variable")
+                                
+                                # Fungus
+                                elif "fungus" in result["found_group"].lower() or "fungi" in result["found_group"].lower():
+                                    research_agents.append("1602 Infectious Agent / Fungus / Fungus / Other_Fungus")
+
+                                # Parasite
+                                elif "parasite" in result["found_group"].lower() and "protozoa" in result["found_group"].lower():
+                                    research_agents.append("1713 Infectious Agent / Parasite / Protozoa / Other_Protozoa")
+                                elif "parasite" in result["found_group"].lower() and "helminth" in result["found_group"].lower():
+                                    research_agents.append("1723 Infectious Agent / Parasite / Helminth / Other_Helminth")
+                                elif "parasite" in result["found_group"].lower():
+                                    research_agents.append("1702 Infectious Agent / Parasite / Other_Parasite")
+
+                                # Virus
+                                elif "virus" in result["found_group"].lower():
+                                    research_agents.append("1802 Infectious Agent / Virus / Virus / Other_Virus")
+
+                                # Other
+                                else:
+                                    research_agents.append("1902 Infectious Agent / Not Applicable / Not Applicable")
+                                    raise Exception(f"Unlisted agent couldnt be assigned any group: {unlisted_agent}")
+                                
+                            elif is_example_or_related:
+                                example_agents.append(unlisted_agent)
+
+                        except Exception:
+                            print(f"Error processing unlisted agent {unlisted_agent}, attempt {tries + 1}:\n{traceback.format_exc()}")
+                            tries += 1
+
+                    # If we couldn't get a valid result, use the default Other category
+                    if not valid_result:
+                        research_agents.append("1900 Infectious Agent / Other / Other_Other")
+
             if not research_agents:
-                research_agents.extend(found_group)
-                research_agents = list(set(research_agents))  # Remove duplicates
+                research_agents = state.get("found_groups", [])
+
+            research_agents = list(set(research_agents))  # Remove duplicates
 
             explanation = (
                 f"Agent Categorization:\n"
                 f"Research focus: {', '.join(research_agents) if research_agents else 'None'}\n"
-                f"Examples/related: {', '.join(example_agents) if example_agents else 'None'}\n"
-                f"Additional groups found: {', '.join(found_group) if found_group else 'None'}\n"
-                f"Details:\n" + "\n".join(agent_explanations)
+                f"Details:\n" + "\n".join(agent_explanations) if agent_explanations else ""
             )
 
-            print(f"EXAMPLE: {example_agents}")
-            print(f"RESEARCH: {research_agents}")
-
             return {
-                "example_agents": example_agents,
-                "research_agents": research_agents,
-                "explanation": state["explanation"] + "\n\n" + explanation
+                "workflow_finished": True,
+                "classification": research_agents,
+                "explanation": state["explanation"] + "\n\n" + explanation,
             }
                 
         except Exception:
             print(f"Error in example and recurring check:\n{traceback.format_exc()}")
             return {
-                "example_agents": [],
-                "research_agents": [],
+                "workflow_finished": True,
+                "classification": "",
                 "explanation": state["explanation"] + "\n\nError: Failed to categorize agents"
             }
-
-    def check_is_target(state: dict) -> dict:
-        """
-        Check if research agents are explicitly mentioned as treatment targets.
-        Analyzes each research agent to determine if it's a target of the treatment/discovery.
-        """
-        try:
-            research_agents = state.get("research_agents", [])
-            target_agents = []
-            uncertain_agents = []
-            explanations = {}
-
-            for agent in research_agents:
-                result = call_llm(
-                    get_target_check_prompt(
-                        title=state["title"],
-                        abstract=state["abstract"],
-                        agent=agent
-                    ),
-                    model
-                )
-
-                if not result or "is_target" not in result:
-                    print(f"Invalid target check result format for agent {agent}")
-                    uncertain_agents.append(agent)
-                    continue
-
-                # Store the explanation
-                explanations[f"target_check_{agent}"] = result["explanation"]
-
-                if result["is_target"]:
-                    target_agents.append(agent)
-                else:
-                    uncertain_agents.append(agent)
         
-            print(f"TARGET: {target_agents}")
-            print(f"UNCERTAIN: {uncertain_agents}")
+    
 
-            return {
-                "target_agents": target_agents,
-                "uncertain_agents": uncertain_agents,
-            }
-            
-        except Exception:
-            print(f"Error in target check:\n{traceback.format_exc()}")
-            return {
-                "target_agents": [],
-                "uncertain_agents": research_agents,  # Move all to uncertain on error
-            }
+    
 
     # Add nodes to graph
+    workflow.add_node("mentions_group", check_mentions_group)
     workflow.add_node("mentions_infectious_agent", check_mentions_infectious_agent)
     workflow.add_node("check_example_and_recurring", check_example_and_recurring)
-    workflow.add_node("check_is_target", check_is_target)
 
     # Add conditional edges based on the decision tree
-    workflow.add_edge(START, "mentions_infectious_agent")
+    workflow.add_edge(START, "mentions_group")
+    
+    workflow.add_conditional_edges(
+        "mentions_group",
+        lambda x: {
+            True: "mentions_infectious_agent",  # Found groups
+            False: END  # No groups found and workflow finished
+        }[not x["workflow_finished"]]
+    )
 
-    workflow.add_edge("mentions_infectious_agent", "check_example_and_recurring")
+    workflow.add_conditional_edges(
+        "mentions_infectious_agent",
+        lambda x: {
+            True: "check_example_and_recurring",  # Found infectious agents
+            False: END  # No infectious agents found
+        }[not x["workflow_finished"]]
+    )
     workflow.add_edge("check_example_and_recurring",END)
     
     # # Branch based on whether infectious agents are found
@@ -320,17 +442,19 @@ class InfectiousAgentTreeClassifier:
         
         # Run graph
         final_state = self.graph.invoke(state)
+
+        # Get classification and convert list to string with linebreaks if needed
+        classification = final_state.get("classification", [])
+        if isinstance(classification, list):
+            classification = "\n".join(classification)
         
+        print(classification)
+        print(final_state.get("explanation", ""))
+
         # Process results
         results = {
-            "classifications": final_state.get("classifications", []),
-            "explanations": {
-                "has_infectious_agent": final_state.get("has_infectious_agent", False),
-                "found_agents": final_state.get("found_agents", []),
-                "is_explicitly_mentioned": final_state.get("is_explicitly_mentioned", False),
-                "is_target": final_state.get("is_target", False),
-                "keep_recurring": final_state.get("keep_recurring", False)
-            }
+            "classification": classification,
+            "explanation": final_state.get("explanation", ""),
         }
         
         return results

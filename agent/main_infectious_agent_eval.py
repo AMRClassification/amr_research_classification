@@ -66,8 +66,8 @@ def run_infectious_agent_evaluation(
                 "Title": entry["Title"],
                 "Abstract": entry["Abstract"],
                 "Ground Truth": entry["Categories"],
-                "Prediction": classification_result["classifications"],
-                "Explanations": classification_result["explanations"]
+                "Prediction": classification_result["classification"],
+                "Explanation": classification_result["explanation"]
             }
             results.append(result)
             
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     # Configuration
     INPUT_FILE = "assets/4. Data_Dynamic Dashboard_test_19032024.xlsx"  # Update with your input file
     MODEL = "gpt-4o-mini"
-    START_INDEX = 20
+    START_INDEX = 14000
     NUM_ENTRIES = 10  # Adjust as needed
     
     # Run evaluation

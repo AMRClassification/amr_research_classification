@@ -84,8 +84,8 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
             explanation = (
                 "1. Groups Mentioned:\n"
                 f"Groups identified: {', '.join(result['found_groups']) if result['found_groups'] else 'None'}\n"
-                f"Reasoning: {result['explanation']}\n"
-                f"Supporting quotes: {', '.join(result['mentions']) if result.get('mentions') else 'None'}\n"
+                f"\nReasoning: {result['explanation']}\n"
+                f"\nMentions: {', '.join(result['mentions']) if result.get('mentions') else 'None'}\n"
             )
             
             if result["has_groups"]:
@@ -139,16 +139,14 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
             
             # Build explanation for listed agents
             listed_explanation = (
-                "\n2. Listed Infectious Agents:\n"
-                f"Found agents from predefined list: {', '.join(result['listed_agents']) if result['listed_agents'] else '-'}\n"
-                f"Context: {result.get('listed_agents_context', 'No context provided')}\n" if result['listed_agents'] else '\n'
+                "\n-------------------------------------------------------\n2. Listed Infectious Agents:\n"
+                f"{'\n'.join(result['listed_agents']) if result['listed_agents'] else '-'}\n"
             )
 
-            # Build explanation for unlisted agents
+            # Build explanation for unlisted agents 
             unlisted_explanation = (
-                "\n3. Unlisted Infectious Agents:\n"
-                f"Found agents not in predefined list: {', '.join(result['unlisted_agents']) if result['unlisted_agents'] else '-'}\n"
-                f"Context: {result.get('unlisted_agents_context', 'No context provided')}\n" if result['unlisted_agents'] else '\n'
+                f"\n-------------------------------------------------------\n3. Unlisted Infectious Agents:\n"
+                f"{'\n'.join(result['unlisted_agents']) if result['unlisted_agents'] else '-'}\n"
             )
 
             # Combine explanations
@@ -156,7 +154,7 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
                 state["explanation"] +  # Previous explanation from group check
                 listed_explanation +
                 unlisted_explanation +
-                f"\nAnalysis: {result['explanation']}"
+                f"\nAnalysis: {result['explanation']}\n\nListed Mentions:\n{result.get('listed_mentions', '-')}\n\nUnlisted Mentions:\n{result.get('unlisted_mentions', '-')}"
             )
             
             if result["has_infectious_agent"]:
@@ -222,21 +220,23 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
                         #       if result['mentions'] else "None")
                         # print("-" * 80)
 
-                        if not result or "agent_classification" not in result:
+                        if not result or "is_target" not in result:
                             print(f"Invalid example check result format for agent {agent}, attempt {tries + 1}")
                             tries += 1
                             continue
 
-                        # Assert that an agent cannot be both recurring and an example/related research
-                        is_example_or_related = result["is_example"] or result["is_from_related_research"]
-                        assert not (result["is_recurringly_mention"] and is_example_or_related), \
-                            f"Agent {agent} cannot be both recurring and an example/related research"
-
                         valid_result = True
 
-                    except AssertionError:
-                        print(f"Assertion failed for agent {agent}, attempt {tries + 1}")
-                        tries += 1
+                        # Categorize agent based on result
+                        if result["is_target"]:
+                            research_agents.append(agent)
+                            mentions = "\n".join(f"  - {mention}" for mention in result['mentions'])
+                            agent_explanations.append(f"'{agent}': Research focus\n{result['explanation']}\nMentions:\n{mentions}\n\n")
+                        else:
+                            example_agents.append(agent)
+                            mentions = "\n".join(f"  - {mention}" for mention in result['mentions'])
+                            agent_explanations.append(f"'{agent}': Example/related research\n{result['explanation']}\nMentions:\n{mentions}\n\n")
+                    
                     except Exception:
                         print(f"Error processing agent {agent}, attempt {tries + 1}:\n{traceback.format_exc()}")
                         tries += 1
@@ -248,32 +248,13 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
                     agent_explanations.append(f"'{agent}': Defaulted to research focus after failed attempts")
                     continue
 
-                # # Handle found groups if present and agent is an example
-                # if result["is_example"] and "found_group" in result and result["found_group"]:
-                #     found_group.append(result["found_group"])
-                #     agent_explanations.append(
-                #         f"Found additional groups through example {agent}: {', '.join(result['found_group'])}"
-                #     )
-                # print(f"FOUND GROUPS: {found_group}")
-
-                # Categorize agent based on result
-                if result["is_recurringly_mention"]:
-                    research_agents.append(agent)
-                    agent_explanations.append(f"'{agent}': Research focus (recurring mentions)")
-                elif is_example_or_related:
-                    example_agents.append(agent)
-                    agent_explanations.append(f"'{agent}': Example/related research")
-                else:
-                    research_agents.append(agent)
-                    agent_explanations.append(f"'{agent}': Research focus")
-
             # # Add found groups to research agents (ensuring uniqueness)
             # if not research_agents:
             #     research_agents.extend(found_group)
             #     research_agents = list(set(research_agents))  # Remove duplicates
 
 
-            # Process unlisted agents to determine if they are examples or research targets
+            # Process unlisted agents
             unlisted_agents = state.get("unlisted_agents", [])
             if unlisted_agents:
                 for unlisted_agent in unlisted_agents:
@@ -291,45 +272,52 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
                                 model
                             )
 
-                            # Assert that an agent cannot be both recurring and an example/related research
-                            is_example_or_related = result["is_example"] or result["is_from_related_research"]
-                            assert not (result["is_recurringly_mention"] and is_example_or_related), \
-                                f"Agent {unlisted_agent} cannot be both recurring and an example/related research"
+                            print(result)
+
+                            if not result or "is_target" not in result:
+                                print(f"Invalid example check result format for agent {unlisted_agent}, attempt {tries + 1}")
+                                tries += 1
+                                continue
 
                             valid_result = True
 
                             # If it's a research target, add the "Other" classification for its type
-                            if result["is_recurringly_mention"]:
+                            if result["is_target"]:
+                                search_string = unlisted_agent.lower() + result["found_group"].lower()
+
                                 # Bacteria
-                                if "bacteria" in result["found_group"].lower() and "gram negative" in result["found_group"].lower():
+                                if "bacteria" in search_string and "gram negative" in search_string:
                                     research_agents.append("1503 Infectious Agent / Bacteria / Gram negative / Other Gram negative")
-                                elif "bacteria" in result["found_group"].lower() and "gram positive" in result["found_group"].lower():
+                                elif "bacteria" in search_string and "gram positive" in search_string:
                                     research_agents.append("1513 Infectious Agent / Bacteria / Gram positive / Other Gram positive")
-                                elif "bacteria" in result["found_group"].lower() and "gram variable" in result["found_group"].lower():
+                                elif "bacteria" in search_string and "gram variable" in search_string:
                                     research_agents.append("1523 Infectious Agent / Bacteria / Gram variable / Other Gram variable")
                                 
                                 # Fungus
-                                elif "fungus" in result["found_group"].lower() or "fungi" in result["found_group"].lower():
+                                elif "fungus" in search_string or "fungi" in search_string:
                                     research_agents.append("1602 Infectious Agent / Fungus / Fungus / Other_Fungus")
 
                                 # Parasite
-                                elif "parasite" in result["found_group"].lower() and "protozoa" in result["found_group"].lower():
+                                elif "parasite" in search_string and "protozoa" in search_string:
                                     research_agents.append("1713 Infectious Agent / Parasite / Protozoa / Other_Protozoa")
-                                elif "parasite" in result["found_group"].lower() and "helminth" in result["found_group"].lower():
+                                elif "parasite" in search_string and "helminth" in search_string:
                                     research_agents.append("1723 Infectious Agent / Parasite / Helminth / Other_Helminth")
-                                elif "parasite" in result["found_group"].lower():
+                                elif "parasite" in search_string:
                                     research_agents.append("1702 Infectious Agent / Parasite / Other_Parasite")
 
                                 # Virus
-                                elif "virus" in result["found_group"].lower():
+                                elif "virus" in search_string:
                                     research_agents.append("1802 Infectious Agent / Virus / Virus / Other_Virus")
 
                                 # Other
                                 else:
-                                    research_agents.append("1902 Infectious Agent / Not Applicable / Not Applicable")
+                                    research_agents.append("1902 Infectious Agent / Not Specified / Not Specified_InfectiousAgent")
+                                    agent_explanations.append(f"Warning: Unlisted agent '{unlisted_agent}' could not be assigned to a specific group\n")
                                     raise Exception(f"Unlisted agent couldnt be assigned any group: {unlisted_agent}")
                                 
-                            elif is_example_or_related:
+                                agent_explanations.append(f"Added Other category for unlisted agent '{unlisted_agent}'")
+                                
+                            elif result["is_example"] or result["is_from_related_research"]:
                                 example_agents.append(unlisted_agent)
 
                         except Exception:
@@ -338,17 +326,21 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
 
                     # If we couldn't get a valid result, use the default Other category
                     if not valid_result:
-                        research_agents.append("1900 Infectious Agent / Other / Other_Other")
+                        research_agents.append("1900 Infectious Agent / Not Specified / Not Specified_InfectiousAgent")
 
             if not research_agents:
                 research_agents = state.get("found_groups", [])
 
-            research_agents = list(set(research_agents))  # Remove duplicates
 
+            # Update the explanation format
             explanation = (
-                f"Agent Categorization:\n"
-                f"Research focus: {', '.join(research_agents) if research_agents else 'None'}\n"
-                f"Details:\n" + "\n".join(agent_explanations) if agent_explanations else ""
+                f"-------------------------------------------------------\n4. Agent Categorization:\n"
+                # First, add the overview
+                f"Overview:\n" + 
+                "\n".join([f"'{agent}': {'Research focus' if agent in research_agents else 'Example/related research'}" 
+                          for agent in (listed_agents + unlisted_agents)]) +
+                "\n\nDetails:\n" + 
+                "\n".join(agent_explanations)
             )
 
             return {
@@ -365,7 +357,52 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
                 "explanation": state["explanation"] + "\n\nError: Failed to categorize agents"
             }
         
-    
+
+    def clean_classification(classification: str) -> str:
+        """Clean up the classification by finding nearest matches for each entry."""
+        try:
+            if not classification:
+                return ""
+            
+            # Get valid categories
+            valid_categories = get_categories("Infectious Agent")
+            
+            # Split entries by newline and process each
+            entries = classification.split('\n')
+            cleaned_entries = []
+            
+            for entry in entries:
+                if not entry.strip():
+                    continue
+                
+                # Check if entry is already valid
+                if entry in valid_categories:
+                    cleaned_entries.append(entry)
+                    continue
+                
+                # Try to find closest match
+                closest_matches = find_closest_category(entry, "Infectious Agent", model=model)
+                if closest_matches:
+                    print(f"Correcting classification from '{entry}' to '{', '.join(closest_matches)}'")
+                    cleaned_entries.extend(closest_matches)
+                else:
+                    print(f"Could not find match for: {entry}")
+                    # If no match found, keep original to maintain information
+                    cleaned_entries.append(entry)
+            
+            # Join back with newlines and remove duplicates while maintaining order
+            seen = set()
+            unique_entries = []
+            for entry in cleaned_entries:
+                if entry not in seen:
+                    seen.add(entry)
+                    unique_entries.append(entry)
+            
+            return '\n'.join(unique_entries)
+            
+        except Exception:
+            print(f"Error in classification cleanup:\n{traceback.format_exc()}")
+            return classification  # Return original if cleanup fails
 
     
 
@@ -373,6 +410,7 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
     workflow.add_node("mentions_group", check_mentions_group)
     workflow.add_node("mentions_infectious_agent", check_mentions_infectious_agent)
     workflow.add_node("check_example_and_recurring", check_example_and_recurring)
+    workflow.add_node("clean_classification", clean_classification)
 
     # Add conditional edges based on the decision tree
     workflow.add_edge(START, "mentions_group")
@@ -381,7 +419,7 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
         "mentions_group",
         lambda x: {
             True: "mentions_infectious_agent",  # Found groups
-            False: END  # No groups found and workflow finished
+            False: "clean_classification"  # No groups found and workflow finished
         }[not x["workflow_finished"]]
     )
 
@@ -389,10 +427,11 @@ def create_infectious_agent_graph(model: str = "gpt-4o-mini") -> Graph:
         "mentions_infectious_agent",
         lambda x: {
             True: "check_example_and_recurring",  # Found infectious agents
-            False: END  # No infectious agents found
+            False: "clean_classification"   # No infectious agents found
         }[not x["workflow_finished"]]
     )
-    workflow.add_edge("check_example_and_recurring",END)
+    workflow.add_edge("check_example_and_recurring", "clean_classification")
+    workflow.add_edge("clean_classification", END)
     
     # # Branch based on whether infectious agents are found
     # workflow.add_conditional_edges(

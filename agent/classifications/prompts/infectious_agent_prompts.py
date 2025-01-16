@@ -271,9 +271,10 @@ If any infectious agents from one of these groups are mentioned to be target of 
     "Virus": "1801 Infectious Agent / Virus / Virus / Not Specified_Virus"
 }}
 
-Include all infectious agents groups that are mentioned as target of the research (e.g., "bacterial infections", "fungal pathogens") unless:
+Include all infectious agents groups that are mentioned as target of the research unless:
 1. the infectious agents are only mentioned as examples
 2. the infectious agents are only from related work but not part of this current research
+3. the infectious agents will not be looked into as part of the research 
 
 
 Only if has_groups is false, add the following in the "not_applicable_or_not_specified" field:
@@ -298,7 +299,7 @@ Title: {title}
 Abstract: {abstract}
 
 
-Infectious Agents: 
+Infectious Agents Class List: 
 {infectious_agent_options}
 
 Only add the infectious agents for which one of the following is true:
@@ -313,6 +314,7 @@ Only add the infectious agents for which one of the following is true:
   - if only the gram-negative or gram-positive category of ESKAPE is mentioned, include all of the infectious agents in the respective category
 - in case the research mentions a medicine/treatment and that treatment is focused only on a specific infectious agent, include that agent in the classification
 - infectious agents that are paraphrased by words like antipseudomonal, etc.
+- "MRSA" is the Staphylococcus aureus
 
 
 Don't come up with infectious agents that are not mentioned in the title/abstract.
@@ -320,46 +322,35 @@ Don't come up with infectious agents that are not mentioned in the title/abstrac
 Respond in JSON format:
 {{
     "has_infectious_agent": boolean,
-    "listed_agents": [list of infectious agents that match exactly with the provided categories],
-    "unlisted_agents": [list of other infectious agents mentioned but not in the provided categories],
-    "mentions": [list of relevant quotes from the text showing the mentions],
-    "explanation": "Detailed explanation of your decision and which agents were found"
+    "listed_agents": [list of infectious agents that match exactly with the provided categories (use the full classification string as given in the Infectious Agents Class List)],
+    "unlisted_agents": [list of other infectious agents mentioned but not in the provided categories (use only the name of actual infectious agents without the classification list formatting)],
+    "listed_mentions": [list of relevant quotes from the text showing mentions of listed agents],
+    "unlisted_mentions": [list of relevant quotes from the text showing mentions of unlisted agents],
+    "explanation": "Detailed explanation of your decision and which agents were found and why they are included in the listed_agents or unlisted_agents"
 }}
 
 Note: Separate agents into:
-1. listed_agents: Only agents that exactly match the provided categories
-2. unlisted_agents: Any other infectious agents mentioned that don't match the categories
+1. listed_agents: Only agents that exactly match the provided categories. Include relevant text snippets in mentions_listed.
+2. unlisted_agents: Any other infectious agents mentioned that aren't listed in our categories (only the names of actual infectious agents). Include relevant text snippets in mentions_unlisted. Do not include variants of listed agents (e.g. Carbapenem-resistant Escherichia coli should not be included since Escherichia coli is already a listed agent).
 """
 
 def get_example_check_prompt(title: str, abstract: str, agent: str) -> str:
-    return f"""Analyze how the infectious agent '{agent}' is mentioned in the text and categorize it based on the following criteria:
+    return f"""Analyze how the infectious agent '{agent}' is mentioned in the text and determine if it's a primary research target.
 
 Title: {title}
 Abstract: {abstract}
 
-Categorization Rules:
-1. Consider it as an example/related research if:
-   - It's preceded by phrases like "such as", "e.g.", "for example", "including", indicating that they are only examples of a larger group 
-   Examples:
-    - examples of the Enterobacteriaceae family are mentioned, but the research is focused on the whole of the Enterobacteriaceae family
-    - examples of the gram-negative bacteria are mentioned, but the research is focused on the whole of the gram-negative bacteria
-    - examples of the gram-positive bacteria are mentioned, but the research is focused on the whole of the gram-positive bacteria
-    - examples of the ESKAPE agents are mentioned, but the research is focused on the whole of the ESKAPE agents
+Consider it a research target (true) if atleast one of the following applies:
+1. It appears in the title
+2. It's explicitly mentioned as the being (one of) the target(s) of the currently performed research, which means a eventually resulting treatment would be focused on this specific infectious agent (but it is not just mentioned as an example for a larger group of infectious agents by indicating phrases like "such as", "for example", "including")
+3. It keeps recurring throughout the text, especially in methodology and results
+4. It's discussed in detail in the research findings
 
-   - It's mentioned only in context of other research or background
-   - It's not discussed in detail in the main research findings
-   - You are not sure if this is the infectious agent is directly adressed, and is not mentioned as an example for a larger group of infectious agents
-
-2. Consider it as part of the main research if:
-   - It's mentioned as being the research target of the research
-   - It keeps recurring throughout the text, especially towards the end
-   - It's discussed in detail in the research findings
-   - It's mentioned without example phrases and is central to the research
-   - It appears in the methodology or results section
-
-Note: If an agent fits both categories (example AND recurring/detailed discussion), 
-categorize it as part of the main research.
-
+Consider it NOT a research target (false) if:
+1. It's mentioned as an example (e.g., "such as", "for example", "including")
+2. It's only mentioned in context of other research or background
+3. It appears only in passing or comparative references
+4. There's uncertainty about whether it's directly addressed 
 
 Not Specified Categories for found_group:
 {{
@@ -371,17 +362,15 @@ Not Specified Categories for found_group:
     "Virus": "1801 Infectious Agent / Virus / Virus / Not Specified_Virus",
 }}
 
+Only classify as a target if the infectious agent's name appears explicitly in the text (common abbreviations like MRSA, S. aureus, etc. are allowed). You must include at least one text snippet in your explanation that shows where the infectious agent is directly mentioned.
 
 Respond in JSON format:
 {{
-    "agent_classification": "example_or_related" | "main_research",
-    "is_example": boolean,
-    "is_from_related_research": boolean,
-    "is_recurringly_mention": boolean,
+    "is_target": boolean,
 
     "mentions": [list of any mentions in the text by giving the relevant sentence snippet for the agent_classificaiton],
-    "found_group": if the infectious agent is mentioned as an example of a larger group, the full string of the Not Specified category of the respective larger group,
-    "explanation": "Justification of the categorization decision and which specific mention(s) are used as evidence"
+    "found_group": the full string of the Not Specified category of the respective larger group of the infectious agent,
+    "explanation": "Justification of the categorization decision and relation to the specific mention that you base the decision on"
 }}"""
 
 

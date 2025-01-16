@@ -20,7 +20,7 @@ def main():
 
     try:
         df = pd.read_excel(file_path)
-        print(f"Loaded {len(df)} entries from dataset")
+        print(f"Loaded {len(df)} entries from dataset") 
     except Exception as e:
         print(f"Error loading dataset: {e}")
         return

@@ -73,8 +73,7 @@ def run_infectious_agent_evaluation(
             
             # Save intermediate results
             results_df = pd.DataFrame(results)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_file = f"results/infectious_agent_tree_results_{timestamp}.xlsx"
+            output_file = f"results/iat_{start_index}_{num_entries}.xlsx"
             results_df.to_excel(output_file, index=False)
             
             # Print current result

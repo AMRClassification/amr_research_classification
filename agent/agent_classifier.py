@@ -705,11 +705,11 @@ class Agent:
             return input_df if not self.eval_mode else self.results_df
 
     def combined_validation(self, state: ClassificationState) -> ClassificationState:
-        """Perform final validation of all classifications."""
-        # print("\n[Node: combined_validation] Performing combined validation...")
+        """
+        Perform validation.
+        Placeholder: Could implement additional security checks.
+        """
         try:
-            # Here you can add logic to validate the consistency between different classifications
-            # For now, we'll just pass through the state
             return state
         except Exception as e:
             print(f"Error in combined validation: {e}")

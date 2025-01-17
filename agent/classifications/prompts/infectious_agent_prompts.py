@@ -1,4 +1,5 @@
 from utils.utils import get_categories
+from typing import List
 
 infectious_agent_options = get_categories("Infectious Agent")
 
@@ -293,14 +294,12 @@ Respond in JSON format:
 
 
 def get_mentions_infectious_agent_prompt(title: str, abstract: str) -> str:
-    return f"""Given the following title and abstract, determine if it explicitly mentions any infectious agents searated into listed_agents and unlisted_agents from the following list:
+    return f"""Given the following title and abstract, determine if it explicitly mentions any infectious agents, which are to be researched in this paper:
 
 Title: {title}
 Abstract: {abstract}
 
 
-Infectious Agents Class List: 
-{infectious_agent_options}
 
 Only add the infectious agents for which one of the following is true:
 - the infectious agent is explicitly mentioned in the title/abstract
@@ -313,7 +312,7 @@ Only add the infectious agents for which one of the following is true:
     - Enterobacter species (Gram negative)
   - if only the gram-negative or gram-positive category of ESKAPE is mentioned, include all of the infectious agents in the respective category
 - in case the research mentions a medicine/treatment and that treatment is focused only on a specific infectious agent, include that agent in the classification
-- infectious agents that are paraphrased by words like antipseudomonal, etc.
+- infectious agents that are paraphrased by words like antipseudomonal (-> Pseudomonas), etc.
 - "MRSA" is the Staphylococcus aureus
 
 
@@ -322,16 +321,24 @@ Don't come up with infectious agents that are not mentioned in the title/abstrac
 Respond in JSON format:
 {{
     "has_infectious_agent": boolean,
-    "listed_agents": [list of infectious agents that match exactly with the provided categories (write the full classification string as given in the Infectious Agents Class List)],
-    "unlisted_agents": [list of other infectious agents mentioned but not in the provided categories (use only the name of actual infectious agents without the classification list formatting)],
-    "listed_mentions": [list of relevant quotes from the text showing mentions of listed agents],
-    "unlisted_mentions": [list of relevant quotes from the text showing mentions of unlisted agents],
-    "explanation": "Detailed explanation of your decision and which agents were found and why they are included in the listed_agents or unlisted_agents"
+    "found_agents": [list of infectious agents that match exactly with the provided categories (write the full classification string as given in the Infectious Agents Class List)],
+    "mentions": [list of relevant quotes from the text showing mentions of  agents],
+    "explanation": "Detailed explanation of your decision and which agents were found"
 }}
 
-Note: Separate agents into:
-1. listed_agents: Only agents that exactly match the provided categories. Include relevant text snippets in mentions_listed.
-2. unlisted_agents: Any other infectious agents mentioned that aren't listed in our categories (only the names of actual infectious agents). Include relevant text snippets in mentions_unlisted. Do not include variants of listed agents (e.g. Carbapenem-resistant Escherichia coli should not be included since Escherichia coli is already a listed agent).
+Example response:
+{{
+    "has_infectious_agent": true,
+    "found_agents": [
+        "Pseudomonas aeruginosa",
+        "Staphylococcus aureus"
+    ],
+    "mentions": [
+        "MRSA infections are becoming increasingly difficult to treat",
+        "antipseudomonal activity was observed"
+    ],
+    "explanation": "The text mentions MRSA which refers to Staphylococcus aureus, and uses the term 'antipseudomonal' which indicates Pseudomonas aeruginosa as a target organism."
+}}
 """
 
 def get_example_check_prompt(title: str, abstract: str, agent: str) -> str:
@@ -428,6 +435,61 @@ Respond in JSON format:
     "explanation": "Justification of the categorization decision and relation to the specific mention that you base the decision on"
 }}"""
 
+
+def get_agent_classification_prompt(title: str, abstract: str, agents: List[str]) -> str:
+    return f"""Analyze how each of the following infectious agents is mentioned in the text and categorize them according to the rules below.
+
+Title: {title}
+Abstract: {abstract}
+
+Agents to analyze: {agents}
+
+
+Consider it a research target if atleast one of the following applies:
+1. It appears in the title
+2. It's explicitly mentioned as the being (one of) the target(s) of the currently performed research, which means a eventually resulting treatment would be focused on this specific infectious agent (but it is not just mentioned as an example for a larger group of infectious agents by indicating phrases like "such as", "for example", "including")
+3. It keeps recurring throughout the text, especially in methodology and results
+4. It's discussed in detail in the research findings
+
+Consider it NOT a research target if:
+1. It's mentioned as an example following words like "such as", "for example", "including", etc.
+2. It's only mentioned in context of other research or background
+3. It appears only in passing or comparative references
+4. There's uncertainty about whether it's directly addressed 
+5. The actual target is a larger group of infectious agents, and the infectious agent is only used as an research example.
+
+
+If it IS a research target, check if it's in this classification list:
+{infectious_agent_options}
+
+If it's in the list, categorize as "in_list" and provide the full classification string.
+If it's not in the list, categorize as "not_in_list" and provide the appropriate Other category using these mappings:
+{{
+    "Gram negative": "1503 Infectious Agent / Bacteria / Gram negative / Other Gram negative",
+    "Gram positive": "1513 Infectious Agent / Bacteria / Gram positive / Other Gram positive",
+    "Gram variable": "1523 Infectious Agent / Bacteria / Gram variable / Other Gram variable",
+    "Fungus": "1602 Infectious Agent / Fungus / Fungus / Other_Fungus",
+    "Parasite": "1702 Infectious Agent / Parasite / Other_Parasite",
+    "Protozoa": "1713 Infectious Agent / Parasite / Protozoa / Other_Protozoa",
+    "Helminth": "1723 Infectious Agent / Parasite / Helminth / Other_Helminth",
+    "Virus": "1802 Infectious Agent / Virus / Virus / Other_Virus"
+}}
+
+Note that it is also possible to classify all agents as "not_targeted", for example if they are just mentioned as examples for a larger group and play no explicit larger role in the paper.
+
+Respond in JSON format:
+{{
+    "agent_classifications": [
+        {{
+            "agent": str,  # Name of the agent
+            "category": "in_list" | "not_in_list" | "not_targeted",
+            "class": str | null,  # Full classification string or Other category if applicable, null if not_targeted
+            "evidence": [str],  # Relevant quotes from text supporting this classification
+            "explanation": str  # Brief explanation of why this categorization was chosen
+        }}
+    ],
+    "analysis_summary": str  # Brief overview of the classification decisions
+}}"""
 
 # Consider these rules:
 #     "Other": "1900 Infectious Agent / Other / Other_Other",

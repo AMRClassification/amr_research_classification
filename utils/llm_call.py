@@ -19,10 +19,11 @@ def get_openai_client():
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     return client
 
-def get_google_client():
+def get_google_client(model: str):
     """Initialize and return Google client with API key."""
     genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-    return genai
+    gemini_model = genai.GenerativeModel(model)
+    return gemini_model
 
 def classify_research(
     prompt: str, model: str, classification_type: str
@@ -43,7 +44,7 @@ def call_llm(prompt: str, model: str) -> str:
     """Call the appropriate LLM based on the model name."""
     try:
         if model.startswith("gemini"):
-            return call_gemini(prompt)
+            return call_gemini(prompt, model)
         else:
             return call_openai(prompt, model)
     except Exception as e:
@@ -87,14 +88,13 @@ def call_openai(prompt: str, model: str) -> dict:
                 }
         else:
             raise json.JSONDecodeError("No JSON object found", content, 0)
-        yxc
 
         return parsed_result
     else:
         return json.loads(completion.choices[0].message.content)
 
 
-def call_gemini(prompt: str) -> dict:
+def call_gemini(prompt: str, model: str) -> dict:
     try:
         # Add explicit instruction for JSON format
         formatted_prompt = f"""
@@ -103,7 +103,7 @@ def call_gemini(prompt: str) -> dict:
         IMPORTANT: Your response must be valid JSON. Wrap your entire response in a JSON object.
         """
 
-        client = get_google_client()
+        client = get_google_client(model)
         response = client.generate_content(formatted_prompt)
 
         # Extract JSON from the response

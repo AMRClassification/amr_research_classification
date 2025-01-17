@@ -32,6 +32,8 @@ from agent.classifications.infectious_agent import (
     classify_infectious_agent,
     validate_infectious_agent_classification
 )
+from agent.classifications.infectious_agent_tree import InfectiousAgentTreeClassifier
+
 
 # Load environment variables
 load_dotenv()
@@ -442,6 +444,35 @@ class Agent:
                 "infectious_agent_next": ["combined_validation"]
             }
 
+    def classify_infectious_agent_tree(self, state: ClassificationState) -> Dict[str, Any]:
+        """Classify the infectious agent using the tree-based approach."""
+        try:
+            # Initialize the tree classifier
+            classifier = InfectiousAgentTreeClassifier(model=self.model)
+            
+            # Run classification
+            result = classifier.classify(
+                title=state["input"]["title"],
+                abstract=state["input"]["abstract"]
+            )
+            
+            if result:
+                # Split classification string into list if it contains newlines
+                classification = result["classification"].split('\n') if '\n' in result["classification"] else [result["classification"]]
+                
+                return {
+                    "infectious_agent_result": {
+                        "infectious_agent": classification,
+                        "explanation": result["explanation"]
+                    },
+                    "infectious_agent_next": ["combined_validation"]  # Skip validation/review
+                }
+            print("HIEERRRASDASDASDSAS")
+            return state
+        except Exception as e:
+            print(f"Error in infectious agent tree classification: {e}")
+            return state
+
     def _setup_workflow(self):
         """Set up the classification workflow."""
         workflow = StateGraph(ClassificationState)
@@ -455,12 +486,13 @@ class Agent:
         workflow.add_node("validate_research_area", self.validate_research_area)
         workflow.add_node("review_research_area_validation", self.review_research_area_validation)
         
-        workflow.add_node("classify_infectious_agent", self.classify_infectious_agent)
-        workflow.add_node("validate_infectious_agent", self.validate_infectious_agent)
-        workflow.add_node("review_infectious_agent_validation", self.review_infectious_agent_validation)
+        # Add both classification approaches for infectious agents
+        # workflow.add_node("classify_infectious_agent", self.classify_infectious_agent)
+        # workflow.add_node("validate_infectious_agent", self.validate_infectious_agent)
+        # workflow.add_node("review_infectious_agent_validation", self.review_infectious_agent_validation)
+        workflow.add_node("classify_infectious_agent_tree", self.classify_infectious_agent_tree)  # New node
 
         workflow.add_node("combined_validation", self.combined_validation)
-
 
         # Parallel sector classification path
         workflow.add_edge(START, "classify_sector")
@@ -474,13 +506,16 @@ class Agent:
         workflow.add_edge("validate_research_area", "review_research_area_validation")
         workflow.add_edge("review_research_area_validation", "combined_validation")
 
-        # Parallel infectious agent path
-        workflow.add_edge(START, "classify_infectious_agent")
-        workflow.add_edge("classify_infectious_agent", "validate_infectious_agent")
-        workflow.add_edge("validate_infectious_agent", "review_infectious_agent_validation")
-        workflow.add_edge("review_infectious_agent_validation", "combined_validation")
+        # Update infectious agent path to use tree classification
+        workflow.add_edge("combined_validation", "classify_infectious_agent_tree")  # Use tree instead of chain
+        workflow.add_edge("classify_infectious_agent_tree", END)
 
-        workflow.add_edge("combined_validation", END)
+        # Keep old chain for reference/backup
+        # workflow.add_edge(START, "classify_infectious_agent")
+        # workflow.add_edge("classify_infectious_agent", "validate_infectious_agent")
+        # workflow.add_edge("validate_infectious_agent", "review_infectious_agent_validation")
+        # workflow.add_edge("review_infectious_agent_validation", "combined_validation")
+
 
         self.app = workflow.compile()
 

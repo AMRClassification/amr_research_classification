@@ -322,7 +322,7 @@ Don't come up with infectious agents that are not mentioned in the title/abstrac
 Respond in JSON format:
 {{
     "has_infectious_agent": boolean,
-    "listed_agents": [list of infectious agents that match exactly with the provided categories (use the full classification string as given in the Infectious Agents Class List)],
+    "listed_agents": [list of infectious agents that match exactly with the provided categories (write the full classification string as given in the Infectious Agents Class List)],
     "unlisted_agents": [list of other infectious agents mentioned but not in the provided categories (use only the name of actual infectious agents without the classification list formatting)],
     "listed_mentions": [list of relevant quotes from the text showing mentions of listed agents],
     "unlisted_mentions": [list of relevant quotes from the text showing mentions of unlisted agents],
@@ -352,7 +352,7 @@ Consider it NOT a research target (false) if:
 3. It appears only in passing or comparative references
 4. There's uncertainty about whether it's directly addressed 
 
-Not Specified Categories for found_group:
+Not Specified Categories for agent_group:
 {{
     "Bacteria": "1500 Infectious Agent / Bacteria / Bacteria / Not Specified_Bacteria",
     "Fungus": "1601 Infectious Agent / Fungus / Fungus / Not Specified_Fungus", 
@@ -362,17 +362,71 @@ Not Specified Categories for found_group:
     "Virus": "1801 Infectious Agent / Virus / Virus / Not Specified_Virus",
 }}
 
-Only classify as a target if the infectious agent's name appears explicitly in the text (common abbreviations like MRSA, S. aureus, etc. are allowed). You must include at least one text snippet in your explanation that shows where the infectious agent is directly mentioned.
+Never classify as a target if the infectious agent's name does not appear explicitly in the text (common abbreviations like MRSA, S. aureus, etc. are allowed). You must take reference to at least one text snippet in your explanation that shows where the infectious agent is directly mentioned by its own name (not inferring from other phrases).
+For example the explanation "Although it is not mentioned directly by name, the focus on 'the spread of pathogens and antibiotic resistance genes' indicates a serious concern about bacterial agents, including Staphylococcus spp." is not allowed!!!
+
+If an infectious agent is a super group of another infectious agent, classify the super group as not being target, but only classify the individual infectious agent as target.
+Here is a list of all classifications that can be made:
+{infectious_agent_options}
 
 Respond in JSON format:
 {{
     "is_target": boolean,
 
     "mentions": [list of any mentions in the text by giving the relevant sentence snippet for the agent_classificaiton],
-    "found_group": the full string of the Not Specified category of the respective larger group of the infectious agent,
+    "agent_group": the full string of the Not Specified category of the respective larger group of the infectious agent (e.g. "1500 Infectious Agent / Bacteria / Bacteria / Not Specified_Bacteria" for any gram-negative, gram-positive or gram-variable bacterial infectious agent),
     "explanation": "Justification of the categorization decision and relation to the specific mention that you base the decision on"
 }}"""
 
+
+
+def get_unlisted_example_check_prompt(title: str, abstract: str, agent: str) -> str:
+    return f"""Analyze how the infectious agent '{agent}' is mentioned in the text and determine if it's a primary research target.
+
+Title: {title}
+Abstract: {abstract}
+
+Consider it a research target (true) if atleast one of the following applies:
+1. It appears in the title
+2. It's explicitly mentioned as the being (one of) the target(s) of the currently performed research, which means a eventually resulting treatment would be focused on this specific infectious agent (but it is not just mentioned as an example for a larger group of infectious agents by indicating phrases like "such as", "for example", "including")
+3. It keeps recurring throughout the text, especially in methodology and results
+4. It's discussed in detail in the research findings
+
+Consider it NOT a research target (false) if:
+1. It's mentioned as an example (e.g., "such as", "for example", "including")
+2. It's only mentioned in context of other research or background
+3. It appears only in passing or comparative references
+4. There's uncertainty about whether it's directly addressed 
+
+Other Categories for agent_group:
+{{
+    "Gram negative": "1503 Infectious Agent / Bacteria / Gram negative / Other Gram negative",
+    "Gram positive": "1513 Infectious Agent / Bacteria / Gram positive / Other Gram positive",
+    "Gram variable": "1523 Infectious Agent / Bacteria / Gram variable / Other Gram variable",
+    "Fungus": "1602 Infectious Agent / Fungus / Fungus / Other_Fungus",
+    "Parasite": "1702 Infectious Agent / Parasite / Other_Parasite",
+    "Protozoa": "1713 Infectious Agent / Parasite / Protozoa / Other_Protozoa",
+    "Helminth": "1723 Infectious Agent / Parasite / Helminth / Other_Helminth",
+    "Virus": "1802 Infectious Agent / Virus / Virus / Other_Virus"
+}}
+
+Never classify as a target if the infectious agent's name does not appear explicitly in the text (common abbreviations like MRSA, S. aureus, etc. are allowed). You must take reference to at least one text snippet in your explanation that shows where the infectious agent is directly mentioned by its own name (not inferring from other phrases).
+For example the explanation "Although it is not mentioned directly by name, the focus on 'the spread of pathogens and antibiotic resistance genes' indicates a serious concern about bacterial agents, including Staphylococcus spp." is not allowed!!!
+
+First check if this agent is actually in the classification list:
+{infectious_agent_options}
+
+Respond in JSON format:
+{{
+    "is_target": boolean,
+
+    "is_in_list": boolean,  # Whether the agent is found in the classification list
+    "associated_entry_in_list": str,  # If is_in_list is true, provide the full classification string from the list
+
+    "mentions": [list of any mentions in the text by giving the relevant sentence snippet for the agent_classificaiton],
+    "agent_group": the full string of the respective Other category of the infectious agent (e.g. "1503 Infectious Agent / Bacteria / Gram negative / Other Gram negative" for an unlisted gram-negative bacterial infectious agent),
+    "explanation": "Justification of the categorization decision and relation to the specific mention that you base the decision on"
+}}"""
 
 
 # Consider these rules:

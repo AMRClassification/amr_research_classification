@@ -5,7 +5,7 @@ from utils.processing import compute_excel_accuracies
 
 def main():
     # Define the path to your Excel file
-    file_name = "4o_4 Data_Dynamic Dashboard_test_19032024_10000_4000"
+    file_name = "results/all_5_runs 13500_500"
     file_path = f"{file_name}.xlsx"
 
     # Define print options for different analysis views

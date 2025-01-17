@@ -201,9 +201,8 @@ def compute_average(results, classification_type, threshold=0.9):
     flat_classifications = [item for sublist in classifications for item in sublist]
     classification_counts = Counter(flat_classifications)
     
-    # Get explanations
-    explanations = [r.get("explanation", "") for r in results if r.get("explanation")]
-    combined_explanation = "\n".join(explanations)
+    # Get only the first explanation
+    first_explanation = results[0].get("explanation", "") if results else ""
     
     # Check if any classification meets the threshold
     total_runs = len(results)
@@ -221,7 +220,7 @@ def compute_average(results, classification_type, threshold=0.9):
         domain = classification_type.replace("_", " ").title()
         most_common = [f"0000 {domain} / Uncertain ({', '.join(uncertainty_info)})"]
     
-    return most_common, combined_explanation
+    return most_common, first_explanation
 
 
 def print_review_result(review_result, classification_type):

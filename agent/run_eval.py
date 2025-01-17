@@ -26,8 +26,8 @@ def main():
         return
 
     # Parameters
-    start_index = 13468
-    num_entries = 20
+    start_index = 13500
+    num_entries = 300
     num_runs = 5
     required_consistent = 4  # Number of required consistent results
     
@@ -61,8 +61,9 @@ def main():
     model_abbreviation = {
         "o1-mini": "o1",
         "gpt-4o-mini": "4o",
-        "gemini-1.5-flash": "flash",
-        "gemini-1.5-pro": "pro",
+        "gemini-1.5-flash": "1.5-flash",
+        "gemini-1.5-pro": "1.5-pro",
+        "gemini-2.0-flash-exp": "2.0-flash",
     }.get(model, "4o")
 
     output_file = f"{model_abbreviation}_{file_name}_{start_index}_{num_entries}.xlsx"

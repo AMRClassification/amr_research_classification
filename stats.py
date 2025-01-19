@@ -5,7 +5,7 @@ from utils.processing import compute_excel_accuracies
 
 def main():
     # Define the path to your Excel file
-    file_name = "results/tests ia/asd3"
+    file_name = "results/tests ia/asd8"
     file_path = f"{file_name}.xlsx"
 
     # Define print options for different analysis views
@@ -16,7 +16,7 @@ def main():
         "constellations": True,  # Print error constellation analysis
     }
 
-    # Define visualization options
+    # Define visuaxlization options
     viz_options = {
         "visualize_analysis": True,  # Show the analysis plots
         "save_plots": True,  # Save plots to files

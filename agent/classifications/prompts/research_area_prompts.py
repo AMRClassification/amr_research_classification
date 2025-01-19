@@ -35,14 +35,8 @@ You are an AI specialized in classifying research papers on antimicrobial resist
 
 #### c. Exclude External References:
 - **Ignore:** References to other works, related studies, citations, or mentions of earlier work.
-- **Focus:** Only on topics directly addressed in the current research.
+- **Focus:** Only on topics directly addressed in the current paper.
 
-#### d. Category-Specific Guidelines:
-- **Translational Research:** Represents transitions between phases and should be classified based on the target phase, not as a separate category.
-- **Diagnostics:** Refers specifically to the detection and identification of infectious agents to determine which agent is present.
-- **Therapeutics Discovery:** Focuses on the detection and validation of therapeutic products.
-- **Therapeutics Testing:** The research is explitly performing clinical trials currently or in the immediate future.
-- **Capacity Building:** Specifically refers to efforts aimed at refurbishing or increasing laboratory infrastructure and capabilities.
 
 #### 4. Keywords:
 Focus on the following keywords to determine the research area.
@@ -161,9 +155,12 @@ You are an AI specialized in validating the classification of research papers in
 **Classification Choices:**
 {research_area_options}
 
+### 1. Additional Information Categories and Subcategories:
+{research_area_additional_info}
+
 **Validation Rules:**
 
-### 1. Classification Rules:
+### 2. Classification Rules:
 
 #### a. Direct Mention:
 - **Primary Goal:** Focus on identifying the major goal or objective of the research.
@@ -177,20 +174,15 @@ You are an AI specialized in validating the classification of research papers in
   - **Main Focus Rule:** If one research area is clearly the primary focus (e.g., constitutes 80% or more of the content), do not assign additional classifications even if other areas are mentioned.
   - **Discovery to Clinical Testing Exception:** If the research explicitly covers the complete process from hit discovery (including target assessment, validation, hit identification, hit to lead, lead identification, lead optimization) through to testing in the lab, classify as BOTH Discovery AND Clinical Testing.
   - **Avoid Overclassification:** Do not assign multiple classifications simply because multiple topics are mentioned; focus on the single main goal of the research unless multiple efforts are clearly mentioned separately.
-
+  - **Clinical Testing Requirement:** Never classify as Clinical Testing if there is no explicit mention that clinical trials (one of the phases 1-3) are being performed currently.
+  - **Preclinical Testing:** In case preclinical testing is explicitly said to be performed, classify as Discovery.
+  
 #### c. Exclude External References:
 - **Ignore:** References to other works, related studies, citations, or mentions of earlier work.
 - **Focus:** Only on topics directly addressed in the current research.
 
-#### d. Category-Specific Guidelines:
-- **Translational Research:** Represents transitions between phases and should be classified based on the target phase, not as a separate category.
-- **Diagnostics:** Refers specifically to the detection and identification of infectious agents to determine which agent is present.
-- **Therapeutics Discovery:** Focuses on the detection and validation of therapeutic products.
-- **Therapeutics Testing:** The research is explitly performing clinical trials currently or in the immediate future.
-- **Capacity Building:** Specifically refers to efforts aimed at refurbishing or increasing laboratory infrastructure and capabilities.
-
-#### 2. Keywords:
-Focus on the following keywords to determine the research area.
+#### 3. Keywords:
+Focus on the following keywords and variants you find in the input text to determine the research area.
 {research_area_keywords}
 
 **Output Format:**
@@ -200,7 +192,7 @@ Focus on the following keywords to determine the research area.
         "is_correct": true/false -> indicating if the original classifications are correct,
         "correct_classification": ["List[str] -> the correct classifications"],
         "evidence": ["List[str] -> relevant quotes from input"],
-        "explanation": "str -> brief explanation of the validation decision",
+        "explanation": "str -> Brief explanation of the validation decision. Never use words like "indication", but instead infer from the text and don't guess whether a phase could be present,
     }}
 }}
 ```

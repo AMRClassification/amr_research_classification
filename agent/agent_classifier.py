@@ -26,7 +26,7 @@ from agent.classifications.sector import classify_sector, validate_sector_classi
 from agent.classifications.research_area import (
     classify_research_area, 
     validate_therapeutics_classification,
-    validate_non_therapeutics_classification
+    validate_research_area_classification
 )
 from agent.classifications.infectious_agent import (
     classify_infectious_agent,
@@ -221,26 +221,26 @@ class Agent:
             result = state["research_area_result"]
             
             # Check if any therapeutics classifications are present
-            therapeutics_codes = ["3100", "3200", "3201", "3202", "3203", "3204", "3205", "3400"]
-            has_therapeutics = any(
-                any(code in area for code in therapeutics_codes)
-                for area in result.get("research_area", [])
-            )
+            # therapeutics_codes = ["3100", "3200", "3201", "3202", "3203", "3204", "3205", "3400"]
+            # has_therapeutics = any(
+            #     any(code in area for code in therapeutics_codes)
+            #     for area in result.get("research_area", [])
+            # )
             
-            if has_therapeutics:
-                validation = validate_therapeutics_classification(
-                    title=state["input"]["title"],
-                    abstract=state["input"]["abstract"],
-                    prediction=str(result["research_area"]),
-                    model=self.model
-                )
-            else:
-                validation = validate_non_therapeutics_classification(
-                    title=state["input"]["title"],
-                    abstract=state["input"]["abstract"],
-                    prediction=str(result["research_area"]),
-                    model=self.model
-                )
+            # if has_therapeutics:
+                # validation = validate_therapeutics_classification(
+                #     title=state["input"]["title"],
+                #     abstract=state["input"]["abstract"],
+                #     prediction=str(result["research_area"]),
+                #     model=self.model
+                # )
+            # else:
+            validation = validate_research_area_classification(
+                title=state["input"]["title"],
+                abstract=state["input"]["abstract"],
+                prediction=str(result["research_area"]),
+                model=self.model
+            )
 
             if validation:
                 print_validation_result(
@@ -497,14 +497,14 @@ class Agent:
         # Parallel sector classification path
         workflow.add_edge(START, "classify_sector")
         workflow.add_edge("classify_sector", "validate_sector")
-        workflow.add_edge("validate_sector", "review_sector_validation")
-        workflow.add_edge("review_sector_validation", "combined_validation")
+        workflow.add_edge("validate_sector", "combined_validation")
+        # workflow.add_edge("review_sector_validation", "combined_validation")
 
         # Parallel research area path
         workflow.add_edge(START, "classify_research_area")
         workflow.add_edge("classify_research_area", "validate_research_area")
-        workflow.add_edge("validate_research_area", "review_research_area_validation")
-        workflow.add_edge("review_research_area_validation", "combined_validation")
+        workflow.add_edge("validate_research_area", "combined_validation")
+        # workflow.add_edge("review_research_area_validation", "combined_validation")
 
         # Update infectious agent path to use tree classification
         workflow.add_edge("combined_validation", "classify_infectious_agent_tree")  # Use tree instead of chain

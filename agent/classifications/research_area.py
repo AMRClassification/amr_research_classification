@@ -157,7 +157,7 @@ def validate_therapeutics_classification(title, abstract, prediction, model="gpt
                 print("Max retries reached. Returning None.")
                 return None
 
-def validate_non_therapeutics_classification(title, abstract, prediction, model="gpt-4o-mini"):
+def validate_research_area_classification(title, abstract, prediction, model="gpt-4o-mini"):
     max_tries = 3
     tries = 0
 

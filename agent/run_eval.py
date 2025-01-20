@@ -26,7 +26,7 @@ def main():
         return
 
     # Parameters
-    start_index = 13500
+    start_index = 10000
     num_entries = 100
     num_runs = 1
     required_consistent = 4  # Number of required consistent results
@@ -49,7 +49,7 @@ def main():
     # model_choice = input("\nSelect model (1-4): ")
     # model = model_choices.get(model_choice, "gpt-4o-mini")
 
-    model = "gpt-4o-mini"
+    model = "o1-mini"
 
     print(
         f"\nStarting classification of {num_entries} entries from index {start_index}"

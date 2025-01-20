@@ -138,7 +138,7 @@ def main():
             
             # Display sample of the data
             st.write("First few rows of the dataset:")
-            st.dataframe(df[["Title", "Abstract"]].head())
+            st.dataframe(df[["Id", "Title", "Abstract"]].head())
             
             # Index range selection
             st.subheader("Select Range")
@@ -236,7 +236,18 @@ def main():
                             st.markdown(f"**ID:** {last_entry['Id']}")
                             st.markdown(f"**Title:** {last_entry['Title']}")
                             st.markdown(f"**Abstract:** {last_entry['Abstract'][:500]}...")
-                            st.markdown(f"**Prediction:**\n{last_entry['Prediction']}")
+                            # Split prediction into lines and display each part on a new line
+                            st.markdown("**Prediction:**")
+                            predictions = last_entry['Prediction'].split('\n')
+                            current_category = None
+                            for pred in predictions:
+                                pred = pred.strip()
+                                if pred:
+                                    if any(category in pred for category in ['Sector', 'Research Area', 'Infectious Agent']):
+                                        current_category = pred
+                                        st.markdown(f"\n:blue[**{current_category}**]")
+                                    else:
+                                        st.markdown(f"• {pred}")
                     else:
                         st.info("No processed entries with predictions yet.")
                 else:

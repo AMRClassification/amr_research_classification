@@ -49,14 +49,18 @@ def parse_non_json_response(response, category_key):
     }
 
 
-def get_additional_info(category):
+def get_additional_info(category, short=False):
     """
     Read additional information from text files in the assets/docs directory.
 
     :param category: The category name (e.g., 'Sector', 'Research Area', 'Infectious Agent')
+    :param short: If True, append '_short' to filename for Research Area category
     :return: A string containing the additional information
     """
-    filename = f"{category.lower().replace(' ', '_')}.txt"
+    filename = f"{category.lower().replace(' ', '_')}"
+    if category == "Research Area" and short:
+        filename += "_short"
+    filename += ".txt"
     file_path = os.path.join(docs_path, filename)
 
     try:

@@ -7,6 +7,7 @@ from .error_analysis import (
     prediction_accuracy,
     analyze_error_constellations,
     analyze_misclassifications,
+    calculate_complete_matches,
 )
 from .visualizations import (
     plot_accuracy_metrics,
@@ -104,6 +105,13 @@ def compute_excel_accuracies(
         ground_truths=certain_ground_truths,
         predictions=certain_predictions,
         verbose=print_options["prediction_wise"],
+    )
+
+    # Calculate complete matches (new addition)
+    calculate_complete_matches(
+        ground_truths=certain_ground_truths,
+        predictions=certain_predictions,
+        verbose=True  # Always show these results
     )
 
     # Generate output file path based on input file

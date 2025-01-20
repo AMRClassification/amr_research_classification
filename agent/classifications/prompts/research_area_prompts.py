@@ -2,7 +2,7 @@ from utils.utils import get_categories, get_additional_info, get_keywords
 
 
 research_area_options = get_categories("Research Area")
-research_area_additional_info = get_additional_info("Research Area")
+research_area_additional_info = get_additional_info("Research Area", short=True)
 research_area_keywords = get_keywords("Research Area")
 
 
@@ -18,29 +18,32 @@ You are an AI specialized in classifying research papers on antimicrobial resist
 ### 2. Additional Information:
 {research_area_additional_info} 
 
-### 3. Classification Rules:
+#### 3. Keywords:
+Focus on the following keywords to determine the research area.
+{research_area_keywords}
+
+### 4. Classification Rules:
 
 #### a. Direct Mention:
 - **Primary Goal:** Focus on identifying the major goal or objective of the research.
 - **Classification Assignment:** Assign research areas that are explicitly mentioned in the title/abstract as defined by the keywords.
 
-#### b. Preference for Single Classification:
-- **Default to Single Classification:** Assign only one research area that best represents the main focus of the research.
-- **When to Assign Multiple Classifications:**
-  - **Rare Exceptions:** Assign multiple research areas only if the research equally and explicitly addresses multiple areas as main objectives.
-  - **Equal Focus Required:** Multiple classifications are permitted only when multiple research areas are mentioned as separate efforts with clear significance and focus in the research.
-  - **Main Focus Rule:** If one research area is clearly the primary focus (e.g., constitutes 80% or more of the content), do not assign additional classifications even if other areas are mentioned.
-  - **Discovery to Clinical Testing Exception:** If the research explicitly covers the complete process from hit discovery (including target assessment, validation, hit identification, hit to lead, lead identification, lead optimization) through to testing in the lab, classify as BOTH Discovery AND Clinical Testing.
-  - **Avoid Overclassification:** Do not assign multiple classifications simply because multiple topics are mentioned; focus on the single main goal of the research unless multiple efforts are clearly mentioned separately.
+#### b. Single Classification:
+- **Single Classification:** Assign only one research area that best represents the main focus of the research.
+- **Multiple Classifications:** Only assign multiple research areas in rare cases where ALL of these conditions are met:
+  1. The title/abstract clearly describes completely separate research efforts
+  2. Each effort must be explicitly described as a distinct focus of the research
+  3. The research areas must be from different high-level categories (e.g. "2100 Research Area / Basic Research / Fundamental" and "6100 Research Area / Operational / Operational")
+  4. The research areas cannot be from the same category (e.g. cannot assign both "3100 Research Area / Therapeutics / Discovery" and "3200 Research Area / Therapeutics / Development" since these represent different stages of the same pipeline)
 
 #### c. Exclude External References:
 - **Ignore:** References to other works, related studies, citations, or mentions of earlier work.
-- **Focus:** Only on topics directly addressed in the current paper.
+- **Focus:** Only on topics directly addressed in the current research.
 
+### Distinction between Discovery and Clinical Testing:
+- **Clinical Testing Requirement:** Never classify as Clinical Testing if there is no explicit mention that clinical trials (one of the phases 1-3) are being performed currently.
+- **Preclinical Testing:** In case preclinical testing is explicitly said to be performed, classify as Discovery.
 
-#### 4. Keywords:
-Focus on the following keywords to determine the research area.
-{research_area_keywords}
 
 Only assign classes for which these according keywords or variants are mentioned to be actively performed within the current research.
 Use the keywords to determine what stage of research they are currently in.
@@ -60,6 +63,9 @@ The output should be a JSON object with the following structure:
                 }}
             ],
             "explanation": "str -> Explanation how this explains the addition of this research area to the classification",
+        }},
+        {{
+            Second research area never from the same category as the first one, and only if it is a completely separate research effort as described in the classification rules
         }}
     ]
 }}
@@ -71,78 +77,6 @@ Now, perform the classification for the following research paper given only thes
 """
 
 
-def get_therapeutics_validation_prompt(title, abstract, prediction):
-    prompt = f"""
-You are an AI specialized in validating the classification of research papers in the Therapeutics area. Your task is to verify if the current given classification is correct for the paper's title and abstract.
-
-**Input:**
-- **Title:** {title}
-- **Abstract:** {abstract}
-
-- **Current Classification:** {prediction}
-
-**Validation Rules for Therapeutics:**
-
-1. **Discovery vs Clinical Testing:**
-   
-   a) **Therapeutics / Discovery** (3100):
-   - Research is in early stages (lab/preclinical)
-   - Focuses on target identification, validation
-   - Involves lead optimization
-   - Preclinical testing/trials
-   - No mention of clinical trials
-   
-   b) **Therapeutics / Clinical Testing** (3200):
-   - Research involves clinical trials
-   - Explicitly mentions Phase 1, 2, or 3
-   - Testing in human subjects
-   - Moving beyond preclinical stage
-   - Must explicitly state clinical trial involvement
-   - Does the title or abstract explicitly mention that there are clinical trials performed? Otherwise, classify only as "Therapeutics / Discovery"
-
-   c) **Both Discovery and Clinical Testing:**
-   - Research explicitly covers the complete process from hit discovery through clinical phases
-   - Must include target assessment, validation, hit identification, hit to lead, lead identification, lead optimization
-   - AND explicitly mention actual involvement in clinical trials
-   - Both aspects must be active parts of the current research, not just future plans
-
-
-Here are some more general guidelines:
-#### a. Direct Mention:
-- **Primary Goal:** Focus on identifying the major goal or objective of the research.
-- **Classification Assignment:** Assign research areas that are explicitly mentioned in the title/abstract.
-
-#### b. Preference for Single Classification:
-- **Default to Single Classification:** Assign only one research area that best represents the main focus of the research.
-- **When to Assign Multiple Classifications:**
-  - **Rare Exceptions:** Assign multiple research areas only if the research equally and explicitly addresses multiple areas as main objectives.
-  - **Equal Focus Required:** Multiple classifications are permitted only when multiple research areas are mentioned as separate efforts with clear significance and focus in the research.
-  - **Main Focus Rule:** If one research area is clearly the primary focus (e.g., constitutes 80% or more of the content), do not assign additional classifications even if other areas are mentioned.
-  - **Avoid Overclassification:** Do not assign multiple classifications simply because multiple topics are mentioned; focus on the single main goal of the research unless multiple efforts are clearly mentioned separately.
-
-#### c. Exclude External References:
-- **Ignore:** References to other works, related studies, citations, or mentions of earlier work.
-- **Focus:** Only on topics directly addressed in the current research.
-
-### Classification Choices:
-{research_area_options}
-
-**Output Format:**
-```json
-{{
-    "validation_result": {{
-        "is_correct": true/false -> indicating if the original classifications are correct,
-        "correct_classification": ["List[str] -> the correct classifications"],
-        "evidence": ["List[str] -> relevant quotes from input"],
-        "explanation": "str -> brief explanation of the validation decision",
-    }}
-}}
-```
-"""
-    return prompt
-
-
-
 def get_research_area_validation_prompt(title, abstract, prediction):
     return f"""
 You are an AI specialized in validating the classification of research papers into research areas. Your task is to verify if the current given classification is correct for the paper's title and abstract.
@@ -150,6 +84,7 @@ You are an AI specialized in validating the classification of research papers in
 **Input:**
 - **Title:** {title}
 - **Abstract:** {abstract}
+
 - **Current Classification:** {prediction}
 
 **Classification Choices:**
@@ -158,32 +93,34 @@ You are an AI specialized in validating the classification of research papers in
 ### 1. Additional Information Categories and Subcategories:
 {research_area_additional_info}
 
+#### 2. Keywords:
+Focus on the following keywords and variants you find in the input text to determine the research area.
+{research_area_keywords}
+
 **Validation Rules:**
 
-### 2. Classification Rules:
+### 3. Classification Rules:
 
 #### a. Direct Mention:
 - **Primary Goal:** Focus on identifying the major goal or objective of the research.
 - **Classification Assignment:** Assign research areas that are explicitly mentioned in the title/abstract as defined by the keywords.
 
-#### b. Preference for Single Classification:
-- **Default to Single Classification:** Assign only one research area that best represents the main focus of the research.
-- **When to Assign Multiple Classifications:**
-  - **Rare Exceptions:** Assign multiple research areas only if the research equally and explicitly addresses multiple areas as main objectives.
-  - **Equal Focus Required:** Multiple classifications are permitted only when multiple research areas are mentioned as separate efforts with clear significance and focus in the research.
-  - **Main Focus Rule:** If one research area is clearly the primary focus (e.g., constitutes 80% or more of the content), do not assign additional classifications even if other areas are mentioned.
-  - **Discovery to Clinical Testing Exception:** If the research explicitly covers the complete process from hit discovery (including target assessment, validation, hit identification, hit to lead, lead identification, lead optimization) through to testing in the lab, classify as BOTH Discovery AND Clinical Testing.
-  - **Avoid Overclassification:** Do not assign multiple classifications simply because multiple topics are mentioned; focus on the single main goal of the research unless multiple efforts are clearly mentioned separately.
-  - **Clinical Testing Requirement:** Never classify as Clinical Testing if there is no explicit mention that clinical trials (one of the phases 1-3) are being performed currently.
-  - **Preclinical Testing:** In case preclinical testing is explicitly said to be performed, classify as Discovery.
-  
+#### b. Single Classification:
+- **Single Classification:** Assign only one research area that best represents the main focus of the research.
+- **Multiple Classifications:** Only assign multiple research areas in rare cases where ALL of these conditions are met:
+  1. The title/abstract clearly describes completely separate research efforts
+  2. Each effort must be explicitly described as a distinct focus of the research
+  3. The research areas must be from different high-level categories (e.g. "2100 Research Area / Basic Research / Fundamental" and "6100 Research Area / Operational / Operational")
+  4. The research areas cannot be from the same category (e.g. cannot assign both "3100 Research Area / Therapeutics / Discovery" and "3200 Research Area / Therapeutics / Development" since these represent different stages of the same pipeline)
+
 #### c. Exclude External References:
 - **Ignore:** References to other works, related studies, citations, or mentions of earlier work.
 - **Focus:** Only on topics directly addressed in the current research.
 
-#### 3. Keywords:
-Focus on the following keywords and variants you find in the input text to determine the research area.
-{research_area_keywords}
+### Distinction between Discovery and Clinical Testing:
+- **Clinical Testing Requirement:** Never classify as Clinical Testing if there is no explicit mention that clinical trials (one of the phases 1-3) are being performed currently.
+- **Preclinical Testing:** In case preclinical testing is explicitly said to be performed, classify as Discovery.
+
 
 **Output Format:**
 ```json

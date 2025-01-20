@@ -17,34 +17,44 @@ def get_classification_prompt(
         
     a. **Direct Mention:**
         - Only classify sectors that are directly mentioned or can be directly inferred from the title and abstract.
+        - The goal is to identify the sector(s) for which antimicrobial resistance (AMR) research is being performed. This means determining which sector is the intended target of the research outcomes, such as diagnosis methods, treatments, or protective measures against infectious agents.
+        - Focus on identifying which sector will benefit from or is the intended recipient of the AMR research outcomes.
         
     b. **Sector Selection When Multiple Apply:**
         - If the research involves infectious agents applicable to multiple sectors, prioritize and select the sector that is explicitly mentioned in the title or abstract.
-        
-    c. **Default Classification:**
-        - If no sector is explicitly mentioned, default the classification to the **"Human"** sector.
-        
-    d. **Multiple Classifications:**
+
+    c. **Multiple Classifications:**
         - Multiple sector classifications are permitted **only** if multiple sectors are explicitly mentioned or can be directly inferred from the title and abstract.
         
-    e. **Exclude External References:**
+    d. **Exclude External References:**
         - Ignore any parts of the text that contain references to other resources, such as related work sections or citations to other research. Only consider the topics that are directly treated in the current research.
         
-    f. **Animal Testing for Human Purposes:**
+    e. **Animal Testing for Human Purposes:**
         - If the research involves **animal tests** to study the effects or treatments of AMR **for humans**, classify the sector as **"Human"** instead of **"Animal"**.
         - Indicators may include phrases like "animal models to assess human health impacts," "testing on animals for human applications," "from vegetable oils," "studying ecologic-based structures," etc.
         
-    g. **Animal-Derived Derivatives for Human Use:**
+    f. **Animal-Derived Derivatives for Human Use:**
         - If the research mentions that any **derivatives** (instead of "ingredients") are **derived from animals** but are intended for **human** applications, classify the sector as **"Human"**.
         - Indicators may include phrases like "animal-derived compounds for human therapy," "using animal-sourced materials in human medicine," etc.
     
-    h. **Animal Testing Exclusion:**
-        - If animal tests are performed but the intended use is specifically for human applications, do NOT classify as "Animal" sector.
-        - Examples include:
-            - Testing antibiotics on mice to develop human treatments
-            - Using animal models to study human drug resistance
-            - Animal trials for human therapeutics development
-        - The focus should be on the intended end use (human) rather than the testing method (animal)
+    g. **Animal Testing Exclusion:**
+        - If the research involves **animal tests** to study the effects or treatments of AMR **for humans**, classify the sector as **"Human"** instead of **"Animal"**.
+        - Indicators may include phrases like "animal models to assess human health impacts," "testing on animals for human applications," "from vegetable oils," "studying ecologic-based structures," etc.
+        
+    h. **Classification Based on Specificity:**
+        1. For unspecified sectors within a known category:
+            - If a sector category is mentioned but not specified (e.g., "animal" without the type of animal being mentioned), use the corresponding "Not Specified" classification:
+                - Animal: "1200 Sector / Animal / Not Specified_Animal"
+                - Plant: "1300 Sector / Plant / Not Specified_Plant"
+                - Environment: "1400 Sector / Environment / Not Specified_Environment"
+        2. For unlisted specific sectors:
+            - If a specific sector is mentioned (e.g., wolf) but this specific type of the category is not in the classification list, use the appropriate "Other" category:
+                - Animal: "1201 Sector / Animal / Other_Animal"
+                - Plant: "1301 Sector / Plant / Other_Plant"
+                - Environment: "1401 Sector / Environment / Other_Environment"
+        3. For completely unspecified sectors:
+            - If the sector focus is unclear or not mentioned, classify as:
+                - "1490 Sector / Not Specified / Not Specified_Sector"
 
 2. **Classification Choices:**
     {sector_options}
@@ -61,7 +71,7 @@ def get_classification_prompt(
         {{
             "sector": "str -> 1 sector",
             "relevant_input_snippet": ["List[str] -> the actual quote(s) from the input text where it takes the information from"],
-            "explanation": "str -> Explanation how this explains the addition of this sector to the classification",
+            "explanation": "str -> Explanation how this explains the addition of this sector to the classification. In case of using Not_Specified or Other, explain you why you choose this one over the other according to rule 1. h",
         }}
     ]
 }}
@@ -85,18 +95,66 @@ You are an AI specialized in validating the classification of research papers in
 
 **Validation Rules:**
 
-1. **Human vs Animal Classification:**
-   - Research using animal models for human applications should be classified as "Human"
-   - Animal testing for human therapeutics should be classified as "Human"
-   - Only classify as "Animal" if the research is specifically focused on animal health/treatment
+1. **Classification Rules:**
+        
+    a. **Direct Mention:**
+        - Only classify sectors that are directly mentioned or can be directly inferred from the title and abstract.
+        - The goal is to identify the sector(s) for which antimicrobial resistance (AMR) research is being performed. This means determining which sector is the intended target of the research outcomes, such as diagnosis methods, treatments, or protective measures against infectious agents.
+        - Focus on identifying which sector will benefit from or is the intended recipient of the AMR research outcomes.
+        
+    b. **Sector Selection When Multiple Apply:**
+        - If the research involves infectious agents applicable to multiple sectors, prioritize and select the sector that is explicitly mentioned in the title or abstract.
+        
+    c. **Multiple Classifications:**
+        - Multiple sector classifications are permitted **only** if multiple sectors are explicitly mentioned or can be directly inferred from the title and abstract.
+        
+    d. **Exclude External References:**
+        - Ignore any parts of the text that contain references to other resources, such as related work sections or citations to other research. Only consider the topics that are directly treated in the current research.
+        
+    e. **Animal Testing for Human Purposes:**
+        - If the research involves **animal tests** to study the effects or treatments of AMR **for humans**, classify the sector as **"Human"** instead of **"Animal"**.
+        - Indicators may include phrases like "animal models to assess human health impacts," "testing on animals for human applications," "from vegetable oils," "studying ecologic-based structures," etc.
+        
+    f. **Animal-Derived Derivatives for Human Use:**
+        - If the research mentions that any **derivatives** (instead of "ingredients") are **derived from animals** but are intended for **human** applications, classify the sector as **"Human"**.
+        - Indicators may include phrases like "animal-derived compounds for human therapy," "using animal-sourced materials in human medicine," etc.
+    
+    g. **Animal Testing Exclusion:**
+        - If animal tests are performed but the intended use is specifically for human applications, do NOT classify as "Animal" sector.
+        - Examples include:
+            - Testing antibiotics on mice to develop human treatments
+            - Using animal models to study human drug resistance
+            - Animal trials for human therapeutics development
+        - The focus should be on the intended end use (human) rather than the testing method (animal)
 
-2. **Default Classification:**
-   - If no sector is explicitly mentioned, validate that "Human" is the assigned sector
-   - Challenge any non-Human classification that lacks explicit evidence
+    h. **Classification Based on Specificity:**
+        1. For unspecified sectors within a known category:
+            - If a sector category is mentioned but not specified (e.g., "animal" without type), use the corresponding "Not Specified" classification:
+                - Animal: "1200 Sector / Animal / Not Specified_Animal"
+                - Plant: "1300 Sector / Plant / Not Specified_Plant"
+                - Environment: "1400 Sector / Environment / Not Specified_Environment"
+        2. For unlisted specific sectors:
+            - If a specific sector is mentioned but not in the classification list, use the appropriate "Other" category:
+                - Animal: "1201 Sector / Animal / Other_Animal"
+                - Plant: "1301 Sector / Plant / Other_Plant"
+                - Environment: "1401 Sector / Environment / Other_Environment"
+        3. For completely unspecified sectors:
+            - If the sector focus is unclear or not mentioned, classify as:
+                - "1490 Sector / Not Specified / Not Specified_Sector"
+        
+        In case of using Not_Specified or Other, explain you why you choose this one over the other according.
 
-3. **Multiple Classifications:**
-   - Multiple sectors should only be present if explicitly mentioned
-   - Validate that each sector has direct evidence in the text
+2. **Context Validation:**
+   - Verify sectors are not just mentioned in background/introduction
+   - Confirm sectors are actively studied in the current research
+   - Check that classified sectors are not just examples or peripheral references
+
+3. **Common Errors to Check:**
+   - Over-classification: Including sectors that are only mentioned as examples
+   - Under-specification: Using general categories when specific sectors are explicitly mentioned
+   - Missing classifications: Overlooking clearly mentioned sectors
+   - Context errors: Mistakenly including sectors from referenced studies
+   - Animal testing confusion: Incorrectly classifying animal testing for human applications as "Animal" sector
 
 **Classification Choices:**
 {sector_options}
@@ -105,13 +163,15 @@ You are an AI specialized in validating the classification of research papers in
 ```json
 {{
     "validation_result": {{
-        "is_correct": true/false -> indicating if the original classifications are correct,
+        "is_correct": true/false,
         "correct_classification": ["List[str] -> the correct classifications"],
         "evidence": ["List[str] -> relevant quotes from input"],
-        "explanation": "str -> brief explanation of the validation decision",
+        "explanation": "str -> brief explanation of the validation decision"
     }}
 }}
 ```
+
+Validate the classification based on these rules and provide a clear explanation of your decision.
 """
 
 

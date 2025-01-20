@@ -379,3 +379,52 @@ def analyze_misclassifications(
                             print("-" * 40)
 
     return misclassifications
+
+
+def calculate_complete_matches(ground_truths, predictions, verbose=True):
+    """
+    Calculates the percentage of entries where all classifications across all domains match exactly.
+    
+    Args:
+        ground_truths (list): List of ground truth strings
+        predictions (list): List of prediction strings
+        verbose (bool): Whether to print the results
+        
+    Returns:
+        dict: Statistics about complete matches
+    """
+    total_entries = len(ground_truths)
+    complete_matches = 0
+    
+    for ground_truth, prediction in zip(ground_truths, predictions):
+        gt_domains = parse_classification_categories(ground_truth)
+        pred_domains = parse_classification_categories(prediction)
+        
+        # Check if all domains match exactly (order independent)
+        is_complete_match = True
+        for domain in ["Sector", "Research Area", "Infectious Agent"]:
+            gt_categories = set(gt_domains.get(domain, []))
+            pred_categories = set(pred_domains.get(domain, []))
+            if gt_categories != pred_categories:
+                is_complete_match = False
+                break
+        
+        if is_complete_match:
+            complete_matches += 1
+    
+    match_rate = complete_matches / total_entries if total_entries > 0 else 0
+    
+    results = {
+        "complete_matches": complete_matches,
+        "total_entries": total_entries,
+        "match_rate": match_rate
+    }
+    
+    if verbose:
+        print("\nComplete Classification Matches:")
+        print("-" * 40)
+        print(f"Complete Matches:      {complete_matches}")
+        print(f"Total Entries:        {total_entries}")
+        print(f"Complete Match Rate:  {match_rate:.2%}")
+    
+    return results

@@ -5,18 +5,19 @@ from utils.processing import compute_excel_accuracies
 
 def main():
     # Define the path to your Excel file
-    file_name = "results/tests ia/asd8"
+    file_name = "results/tests ia/asd19"
     file_path = f"{file_name}.xlsx"
 
     # Define print options for different analysis views
     print_options = {
         "level_wise": True,  # Print level-wise hierarchical accuracies
         "prediction_wise": True,  # Print prediction-wise accuracies
-        "misclassifications": True,  # Print detailed misclassification analysis
+        "misclassifications": False,  # Print detailed misclassification analysis
         "constellations": True,  # Print error constellation analysis
+        "complete_matches": True,  # Print complete matches analysis
     }
 
-    # Define visuaxlization options
+    # Define visualization options
     viz_options = {
         "visualize_analysis": True,  # Show the analysis plots
         "save_plots": True,  # Save plots to files

@@ -27,7 +27,7 @@ def main():
 
     # Parameters
     start_index = 13500
-    num_entries = 300
+    num_entries = 100
     num_runs = 1
     required_consistent = 4  # Number of required consistent results
     

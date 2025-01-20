@@ -7,7 +7,6 @@ from utils.utils import (
 from utils.llm_call import call_llm
 from .prompts.research_area_prompts import (
     get_classification_prompt,
-    get_therapeutics_validation_prompt,
     get_research_area_validation_prompt,
 )
 

@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 from agent.agent_classifier import Agent
-from utils.processing import compute_excel_accuracies
+from utils.result_analysis.run_analysis import compute_excel_accuracies
 from openai import OpenAI
 import io
 

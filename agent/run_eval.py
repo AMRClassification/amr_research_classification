@@ -7,15 +7,13 @@ import sys
 sys.path.insert(1, os.getcwd())
 
 import pandas as pd
-from datetime import datetime
-from utils.data_processing import process_excel_data
-from utils.processing import compute_excel_accuracies
+from utils.result_analysis.run_analysis import compute_excel_accuracies
 from agent_classifier import Agent
 
 
 def main():
     # Load your data
-    file_name = "4. Data_Dynamic Dashboard_test_19032024"
+    file_name = "Human_Therapeutics_1060"
     file_path = f"assets/{file_name}.xlsx"
 
     try:
@@ -26,7 +24,7 @@ def main():
         return
 
     # Parameters
-    start_index = 10000
+    start_index = 800
     num_entries = 100
     num_runs = 1
     required_consistent = 4  # Number of required consistent results
@@ -49,7 +47,7 @@ def main():
     # model_choice = input("\nSelect model (1-4): ")
     # model = model_choices.get(model_choice, "gpt-4o-mini")
 
-    model = "o1-mini"
+    model = "gemini-2.0-flash-exp"
 
     print(
         f"\nStarting classification of {num_entries} entries from index {start_index}"

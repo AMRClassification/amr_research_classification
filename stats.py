@@ -1,11 +1,13 @@
 # main.py
 
-from utils.processing import compute_excel_accuracies
+from utils.result_analysis.run_analysis import compute_excel_accuracies
 
 
 def main():
+    # Print the results for the specified results excel file
+
     # Define the path to your Excel file
-    file_name = "results/tests ia/asd17"
+    file_name = "results/tests ia/o1-results-all"
     file_path = f"{file_name}.xlsx"
 
     # Define print options for different analysis views

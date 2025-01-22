@@ -1,15 +1,9 @@
 import os
-import time
 import json
 from openai import OpenAI
 import google.generativeai as genai
 from dotenv import load_dotenv
-from pydantic import BaseModel
-from typing import List, Union
-from utils.pydantic.sector import SectorClassificationResult
-from utils.pydantic.research_area import ResearchAreaClassificationResult
-from utils.pydantic.infectious_agent import InfectiousAgentClassificationResult
-from utils.utils import get_categories, extract_json
+from utils.utils import extract_json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -24,20 +18,6 @@ def get_google_client(model: str):
     genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
     gemini_model = genai.GenerativeModel(model)
     return gemini_model
-
-def classify_research(
-    prompt: str, model: str, classification_type: str
-) -> Union[
-    SectorClassificationResult,
-    ResearchAreaClassificationResult,
-    InfectiousAgentClassificationResult,
-]:
-    # Step 1: Call LLM with prompt and JSON response format
-    json_result = call_llm(prompt, model)
-
-    # Step 2: Validate and convert JSON to Pydantic format
-    validated = validate_and_convert_json(json_result, classification_type)
-    return validated
 
 
 def call_llm(prompt: str, model: str) -> str:
@@ -128,48 +108,3 @@ def call_gemini(prompt: str, model: str) -> dict:
     except Exception as e:
         print(f"Error in Gemini call: {str(e)}")
         return None
-
-
-def validate_and_convert_json(
-    json_dict: dict, classification_type: str
-) -> Union[
-    SectorClassificationResult,
-    ResearchAreaClassificationResult,
-    InfectiousAgentClassificationResult,
-]:
-    categories = get_categories(classification_type.replace("_", " ").title())
-    validation_prompt = f"""
-    Validate and convert the following JSON to the correct Pydantic model format for the {classification_type} classification:
-
-    {json.dumps(json_dict)}
-
-    Ensure all required fields are present and in the correct format.
-    The valid categories for this classification are:
-    {json.dumps(categories)}
-
-    Make sure the classification(s) in the JSON match these categories exactly.
-    """
-
-    if classification_type == "sector":
-        response_format = SectorClassificationResult
-    elif classification_type == "research_area":
-        response_format = ResearchAreaClassificationResult
-    elif classification_type == "infectious_agent":
-        response_format = InfectiousAgentClassificationResult
-    else:
-        raise ValueError(f"Invalid classification type: {classification_type}")
-
-    completion = openai_client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a helpful assistant that can parse the JSON into a Pydantic model.",
-            },
-            {"role": "user", "content": validation_prompt},
-        ],
-        response_format=response_format,
-    )
-    response = completion.choices[0].message.parsed
-
-    return response

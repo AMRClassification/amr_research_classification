@@ -2,6 +2,8 @@ import subprocess
 import os
 import sys
 
+# Run the streamlit app on localhost:8501
+
 if __name__ == "__main__":
     # Get the directory containing the executable
     if getattr(sys, 'frozen', False):

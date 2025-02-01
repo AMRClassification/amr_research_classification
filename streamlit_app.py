@@ -3,9 +3,9 @@ import pandas as pd
 import os
 from datetime import datetime
 from agent.agent_classifier import Agent
-from utils.result_analysis.run_analysis import compute_excel_accuracies
 from openai import OpenAI
 import io
+from pathlib import Path
 
 def validate_api_key(api_key):
     """Test if the OpenAI API key is valid by making a simple API call"""
@@ -17,8 +17,64 @@ def validate_api_key(api_key):
     except Exception as e:
         return False
 
+def setup_data_directory():
+    """Create data directory if it doesn't exist"""
+    data_dir = Path("data/results")
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
+
+def get_saved_results():
+    """Get list of all saved result files"""
+    data_dir = setup_data_directory()
+    return sorted(
+        [f for f in data_dir.glob("*.xlsx")],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+
+def delete_result(file_path):
+    """Delete a result file"""
+    try:
+        os.remove(file_path)
+        return True
+    except Exception as e:
+        st.error(f"Error deleting file: {e}")
+        return False
+
 def main():
     st.title("AMR Research Classification Tool")
+    
+    # Setup data directory
+    data_dir = setup_data_directory()
+    
+    # Add a section for viewing recent results
+    st.sidebar.markdown("---")
+    st.sidebar.header("Recent Results")
+    
+    saved_results = get_saved_results()
+    if saved_results:
+        for result_file in saved_results:
+            col1, col2, col3 = st.sidebar.columns([2, 1, 1])
+            
+            # Display filename
+            col1.write(result_file.name)
+            
+            # Download button
+            with open(result_file, "rb") as file:
+                col2.download_button(
+                    label="📥",
+                    data=file,
+                    file_name=result_file.name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            
+            # Delete button
+            if col3.button("🗑️", key=f"delete_{result_file.name}"):
+                if delete_result(result_file):
+                    st.sidebar.success(f"Deleted {result_file.name}")
+                    st.rerun()
+    else:
+        st.sidebar.info("No saved results found")
     
     # Initialize session state variables
     if 'results_df' not in st.session_state:
@@ -156,6 +212,16 @@ def main():
             
             if not st.session_state.is_running:
                 if col1.button("Start Classification"):
+                    # Generate output filename at classification start
+                    model_abbreviation = {
+                        "o1-mini": "o1",
+                        "gpt-4o-mini": "4o",
+                        "gemini-1.5-flash": "flash",
+                        "gemini-1.5-pro": "pro",
+                    }.get(model, "4o")
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    st.session_state.output_file = data_dir / f"{model_abbreviation}_{uploaded_file.name.split('.')[0]}_S{start_index}_N{num_entries}_{timestamp}.xlsx"
+                    
                     # Initialize agent with current parameters
                     st.session_state.agent = Agent(
                         model=model,
@@ -178,19 +244,9 @@ def main():
                     st.session_state.current_index = None
                     st.session_state.progress = 0
                     st.session_state.agent = None
+                    st.session_state.output_file = None  # Reset output file path
                     st.warning("Classification stopped. Results are saved in the Excel file.")
                     st.rerun()
-            
-            # Set output file name if not already set
-            if st.session_state.output_file is None:
-                model_abbreviation = {
-                    "o1-mini": "o1",
-                    "gpt-4o-mini": "4o",
-                    "gemini-1.5-flash": "flash",
-                    "gemini-1.5-pro": "pro",
-                }.get(model, "4o")
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                st.session_state.output_file = f"{model_abbreviation}_{uploaded_file.name.split('.')[0]}_{start_index}_{num_entries}_{timestamp}.xlsx"
             
             # Show current results if they exist
             if st.session_state.df is not None:
@@ -238,16 +294,19 @@ def main():
                             st.markdown(f"**Abstract:** {last_entry['Abstract'][:500]}...")
                             # Split prediction into lines and display each part on a new line
                             st.markdown("**Prediction:**")
-                            predictions = last_entry['Prediction'].split('\n')
-                            current_category = None
-                            for pred in predictions:
-                                pred = pred.strip()
-                                if pred:
-                                    if any(category in pred for category in ['Sector', 'Research Area', 'Infectious Agent']):
-                                        current_category = pred
-                                        st.markdown(f"\n:blue[**{current_category}**]")
-                                    else:
-                                        st.markdown(f"• {pred}")
+                            if "less than 500 characters" in str(last_entry['Prediction']):
+                                st.error("⚠️ Entry skipped: Content length below minimum threshold (500 characters)")
+                            else:
+                                predictions = last_entry['Prediction'].split('/')
+                                current_category = None
+                                for pred in predictions:
+                                    pred = pred.strip()
+                                    if pred:
+                                        if any(category in pred for category in ['Sector', 'Research Area', 'Infectious Agent']):
+                                            current_category = pred
+                                            st.markdown(f"\n:blue[**{current_category}**]")
+                                        else:
+                                            st.markdown(f"• {pred}")
                     else:
                         st.info("No processed entries with predictions yet.")
                 else:
@@ -260,10 +319,11 @@ def main():
             # Start or continue classification if running
             if st.session_state.is_running:
                 # Process entry
-                if st.session_state.current_index < min(start_index + num_entries, len(df)):
+                end_index = start_index + num_entries  # Calculate the end index
+                if st.session_state.current_index < end_index:
                     try:
                         current_index = st.session_state.current_index
-                        status_text.text(f"Processing entry {current_index} of {len(df)}")
+                        status_text.text(f"Processing entry {current_index - start_index + 1} of {num_entries}")
                         
                         # Process the entry and update DataFrame
                         try:
@@ -277,16 +337,24 @@ def main():
                             # Update the session state DataFrame
                             st.session_state.df = updated_df
                             
+                            # Save results after each successful classification
+                            result_df = updated_df.iloc[start_index:end_index].copy()
+                            result_df.to_excel(st.session_state.output_file, index=False)
+                            
                             # Update display immediately after classification
-                            if current_index >= start_index:
-                                processed_entries = updated_df.iloc[start_index:current_index + 1]
-                                if not processed_entries.empty:
-                                    st.subheader("Current Results")
-                                    display_df = processed_entries[["Id", "Title", "Abstract", "Prediction", 
-                                                                 "Sector Explanation", 
-                                                                 "Research Area Explanation",
-                                                                 "Infectious Agent Explanation"]]
-                                    st.dataframe(display_df)
+                            processed_entries = updated_df.iloc[start_index:current_index + 1]
+                            if not processed_entries.empty:
+                                st.subheader("Current Results")
+                                display_df = processed_entries[["Id", "Title", "Abstract", "Prediction", 
+                                                             "Sector Explanation", 
+                                                             "Research Area Explanation",
+                                                             "Infectious Agent Explanation"]]
+                                st.dataframe(display_df)
+                                
+                                # Show warning for skipped entries
+                                last_entry = processed_entries.iloc[-1]
+                                if "less than 500 characters" in str(last_entry['Prediction']):
+                                    st.warning(f"Entry {current_index} skipped: Content length below minimum threshold")
                         
                         except Exception as e:
                             import traceback

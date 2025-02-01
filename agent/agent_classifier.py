@@ -2,7 +2,7 @@ import os
 import sys
 import traceback
 import pandas as pd
-from typing import Dict, List, Tuple, Optional
+from typing import Dict
 
 sys.path.insert(1, os.getcwd())
 
@@ -11,7 +11,6 @@ from langgraph.graph import StateGraph, END, START
 from dotenv import load_dotenv
 import os
 import pandas as pd
-from collections import Counter
 from utils.utils import compute_average, print_validation_result, print_review_result
 
 from agent.classifications.prompts.sector_prompts import get_sector_validation_review_prompt
@@ -25,7 +24,6 @@ from agent.classifications.infectious_agent import map_less_relevant_infectious_
 from agent.classifications.sector import classify_sector, validate_sector_classification
 from agent.classifications.research_area import (
     classify_research_area, 
-    validate_therapeutics_classification,
     validate_research_area_classification
 )
 from agent.classifications.infectious_agent import (
@@ -39,12 +37,6 @@ from agent.classifications.infectious_agent_tree import InfectiousAgentTreeClass
 load_dotenv()
 
 
-def replace_reducer(existing_value, new_value):
-    """Reducer that replaces the existing value with the new value."""
-    return new_value
-
-
-
 class Agent:
     def __init__(self, model: str, num_runs: int, threshold: float, output_file: str, eval_mode: bool = False):
         """Initialize the agent with the specified parameters."""
@@ -56,8 +48,8 @@ class Agent:
         # Set output file path based on mode
         if eval_mode:
             # For evaluation mode, save in results directory
-            os.makedirs("results", exist_ok=True)
-            self.output_file = os.path.join("results", output_file)
+            os.makedirs("data/results", exist_ok=True)
+            self.output_file = os.path.join("data/results", output_file)
         else:
             # For app mode, use the provided path directly
             self.output_file = output_file
@@ -580,6 +572,9 @@ class Agent:
         
             if not len(title + abstract) > 500:
                 print(f"Entry {index} skipped: Content length below minimum threshold")
+                if not self.eval_mode and input_df is not None:
+                    input_df.at[index, "Prediction"] = "Title + abstract combined have less than 500 characters. Skipping prediction."
+                    input_df.to_excel(self.output_file, index=False)
                 return input_df if not self.eval_mode else self.results_df
             
             sector_results = []

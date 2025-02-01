@@ -7,7 +7,7 @@ def main():
     # Print the results for the specified results excel file
 
     # Define the path to your Excel file
-    file_name = "results/tests ia/o1-results-all"
+    file_name = "results/tests ia/xcd"
     file_path = f"{file_name}.xlsx"
 
     # Define print options for different analysis views

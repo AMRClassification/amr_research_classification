@@ -1,5 +1,7 @@
 results/
 assets/docs/pages/*
+data/results/*
+!data/results/.gitkeep
 
 # Python
 **/__pycache__/

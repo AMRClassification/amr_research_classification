@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import re # Add import for regex
 from datetime import datetime
 from agent.agent_classifier import Agent
 from openai import OpenAI
@@ -44,6 +45,7 @@ def delete_result(file_path):
 def main():
     st.title("AMR Research Classification Tool")
     
+    # TODO: Currently stores results in server files. Only works because current streamlit hosting is reset regularly. If hosting changes, this needs to be fixed.
     # Setup data directory
     data_dir = setup_data_directory()
     
@@ -112,7 +114,7 @@ def main():
     # Model selection
     model = st.sidebar.selectbox(
         "Select Model",
-        ["gpt-4o-mini", "o1-mini"],
+        ["gpt-4o-mini", "o1-mini", "o3-mini", "o4-mini"],
         index=0,
         disabled=st.session_state.is_running
     )
@@ -214,11 +216,13 @@ def main():
                 if col1.button("Start Classification"):
                     # Generate output filename at classification start
                     model_abbreviation = {
-                        "o1-mini": "o1",
-                        "gpt-4o-mini": "4o",
+                        "o1-mini": "o1-mini",
+                        "gpt-4o-mini": "4o-mini",
+                        "o3-mini": "o3-mini",
+                        "o4-mini": "o4-mini",
                         "gemini-1.5-flash": "flash",
                         "gemini-1.5-pro": "pro",
-                    }.get(model, "4o")
+                    }.get(model, "4o-mini")
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     st.session_state.output_file = data_dir / f"{model_abbreviation}_{uploaded_file.name.split('.')[0]}_S{start_index}_N{num_entries}_{timestamp}.xlsx"
                     
@@ -292,21 +296,17 @@ def main():
                             st.markdown(f"**ID:** {last_entry['Id']}")
                             st.markdown(f"**Title:** {last_entry['Title']}")
                             st.markdown(f"**Abstract:** {last_entry['Abstract'][:500]}...")
-                            # Split prediction into lines and display each part on a new line
+                            # Display prediction, split before each main category
                             st.markdown("**Prediction:**")
                             if "less than 500 characters" in str(last_entry['Prediction']):
                                 st.error("⚠️ Entry skipped: Content length below minimum threshold (500 characters)")
                             else:
-                                predictions = last_entry['Prediction'].split('/')
-                                current_category = None
-                                for pred in predictions:
-                                    pred = pred.strip()
-                                    if pred:
-                                        if any(category in pred for category in ['Sector', 'Research Area', 'Infectious Agent']):
-                                            current_category = pred
-                                            st.markdown(f"\n:blue[**{current_category}**]")
-                                        else:
-                                            st.markdown(f"• {pred}")
+                                prediction_string = last_entry['Prediction']
+                                # Split the string using regex lookahead for category identifiers
+                                prediction_segments = re.split(r' / (?=\d+ (?:Sector|Research Area|Infectious Agent))', prediction_string)
+                                # Display each segment using st.text
+                                for segment in prediction_segments:
+                                    st.text(segment.strip())
                     else:
                         st.info("No processed entries with predictions yet.")
                 else:

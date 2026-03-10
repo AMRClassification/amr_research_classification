@@ -114,7 +114,7 @@ def main():
     # Model selection
     model = st.sidebar.selectbox(
         "Select Model",
-        ["gpt-4o-mini", "o1-mini", "o3-mini", "o4-mini"],
+        ["gpt-5.4", "gpt-5-mini-2025-08-07", "gpt-4o-mini", "o1-mini", "o3-mini", "o4-mini"],
         index=0,
         disabled=st.session_state.is_running
     )
@@ -218,6 +218,8 @@ def main():
                     model_abbreviation = {
                         "o1-mini": "o1-mini",
                         "gpt-4o-mini": "4o-mini",
+                        "gpt-5.4": "5.4",
+                        "gpt-5-mini-2025-08-07": "5-mini",
                         "o3-mini": "o3-mini",
                         "o4-mini": "o4-mini",
                         "gemini-1.5-flash": "flash",
